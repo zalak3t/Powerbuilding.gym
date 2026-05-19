@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Configuración local de editores / Claude Code
+.claude/
+.vscode/settings.json
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db
+
+# Builds
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
