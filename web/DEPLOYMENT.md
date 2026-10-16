@@ -11,11 +11,11 @@
    ```
 5. Ejecutar el schema:
    ```bash
-   psql $DATABASE_URL -f backend/src/db/schema.sql
+   psql $DATABASE_URL -f web/backend/src/db/schema.sql
    ```
 6. Ejecutar el seed (usuarios y bloques iniciales):
    ```bash
-   psql $DATABASE_URL -f backend/src/db/seed.sql
+   psql $DATABASE_URL -f web/backend/src/db/seed.sql
    ```
 7. Verificar que las tablas existan:
    ```sql
@@ -28,7 +28,7 @@
 
 1. En el mismo proyecto Railway, agregar un nuevo servicio **GitHub Repo**.
 2. Conectar el repositorio y configurar:
-   - **Root Directory**: `backend`
+   - **Root Directory**: `web/backend`
    - **Start Command**: `npm start`
 3. Ir a **Variables** del servicio backend y agregar:
 
@@ -57,8 +57,8 @@
 1. En [netlify.com](https://app.netlify.com), crear un nuevo sitio:
    - **Add new site → Import an existing project → GitHub**.
    - Seleccionar el repositorio.
-   - **Base directory**: dejar vacío (o `/` si lo pide).
-   - **Publish directory**: `/` (raíz del repo — donde está `index.html`).
+   - **Base directory**: dejar vacío (o `web`).
+   - **Publish directory**: `web` (carpeta donde está `index.html`).
    - **Build command**: dejar vacío (es HTML estático).
 2. Hacer deploy inicial.
 3. **Antes de usar en producción**, editar `index.html` y reemplazar:
