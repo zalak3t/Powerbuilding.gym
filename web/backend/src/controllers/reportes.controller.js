@@ -1,6 +1,7 @@
 const { datosAsistencia, datosOcupacionIngresos } = require('../services/reportes.service');
 const { hoyChile } = require('../utils/fechas');
 const v = require('../utils/validate');
+const { pdfAsistencia, pdfOcupacionIngresos } = require('../services/reportes.pdf');
 
 const MAX_DIAS = 366; // rango máximo inclusivo
 
@@ -12,8 +13,8 @@ const FORMATOS = {
 
 // Generadores de archivos por reporte y formato: se registran en 4.3 (pdf) y 4.4 (xlsx).
 const EXPORTADORES = {
-  asistencia:           { pdf: null, xlsx: null },
-  'ocupacion-ingresos': { pdf: null, xlsx: null },
+  asistencia:           { pdf: pdfAsistencia, xlsx: null },
+  'ocupacion-ingresos': { pdf: pdfOcupacionIngresos, xlsx: null },
 };
 
 // Mes actual completo (día 1 al último día) en America/Santiago.
