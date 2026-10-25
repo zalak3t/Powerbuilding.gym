@@ -5,6 +5,7 @@ const {
   getReservaById,
   deleteReserva,
 } = require('../services/reservas.service');
+const { notificarReserva } = require('../services/notificaciones.service');
 const v = require('../utils/validate');
 
 async function reservar(req, res) {
@@ -37,6 +38,8 @@ async function reservar(req, res) {
   // Crear reserva (la constraint UNIQUE en BD maneja el duplicado)
   try {
     const reserva = await createReserva({ clienteId: cliente.id, bloqueId: bloque_id });
+    // R.18: confirmación por correo, sin esperar y sin afectar la respuesta.
+    notificarReserva(reserva.id).catch(() => {});
     return res.status(201).json({ ok: true, message: 'Reserva creada correctamente', reserva });
   } catch (err) {
     if (err.code === '23505') {
