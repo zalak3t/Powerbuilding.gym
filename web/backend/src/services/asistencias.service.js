@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { HOY_CL_SQL, hoyChile } = require('../utils/fechas');
+const { withTransaction } = require('../utils/tx');
 
 const VALID_DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
@@ -77,14 +78,23 @@ async function getAsistenciaByReservaToday(reservaId) {
   return result.rows[0] || null;
 }
 
+// Marca asistencia de hoy y actualiza clientes.ultima_visita en la misma transacción
 async function createAsistencia(reservaId) {
-  const result = await query(
-    `INSERT INTO asistencias (reserva_id, fecha)
-     VALUES ($1, $2)
-     RETURNING id, reserva_id, fecha`,
-    [reservaId, hoyChile()]
-  );
-  return result.rows[0];
+  const fecha = hoyChile();
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO asistencias (reserva_id, fecha)
+       VALUES ($1, $2)
+       RETURNING id, reserva_id, fecha`,
+      [reservaId, fecha]
+    );
+    await client.query(
+      `UPDATE clientes SET ultima_visita = $1, actualizado_en = NOW()
+       WHERE id = (SELECT cliente_id FROM reservas WHERE id = $2)`,
+      [fecha, reservaId]
+    );
+    return result.rows[0];
+  });
 }
 
 async function getAsistenciaById(id) {
@@ -95,12 +105,30 @@ async function getAsistenciaById(id) {
   return result.rows[0] || null;
 }
 
+// Borra la asistencia y recalcula clientes.ultima_visita con la última asistencia restante
+// (si no queda ninguna, conserva el valor actual) en la misma transacción
 async function deleteAsistencia(id) {
-  const result = await query(
-    'DELETE FROM asistencias WHERE id = $1 RETURNING id',
-    [id]
-  );
-  return result.rows[0] || null;
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      'DELETE FROM asistencias WHERE id = $1 RETURNING id, reserva_id',
+      [id]
+    );
+    const borrada = result.rows[0];
+    if (!borrada) return null;
+    await client.query(
+      `UPDATE clientes c
+       SET ultima_visita = COALESCE(
+             (SELECT MAX(a.fecha)
+              FROM asistencias a
+              JOIN reservas r ON r.id = a.reserva_id
+              WHERE r.cliente_id = c.id),
+             c.ultima_visita),
+           actualizado_en = NOW()
+       WHERE c.id = (SELECT cliente_id FROM reservas WHERE id = $1)`,
+      [borrada.reserva_id]
+    );
+    return { id: borrada.id };
+  });
 }
 
 module.exports = {
