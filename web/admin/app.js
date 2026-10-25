@@ -208,6 +208,55 @@ function toggleAsistencia(btn) {
   });
 }
 
+// ══ INSTALAR APP (R.21) ══
+var deferredPrompt = null;
+
+function isStandalone() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || window.navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Pinta el bloque de instalación en login y en Hoy; vacío si ya está instalada
+function renderInstall() {
+  var html = '';
+  if (!isStandalone()) {
+    if (deferredPrompt) {
+      html = '<div class="install"><strong>Instala la app</strong> en tu pantalla de inicio.'
+        + '<button type="button" class="btn" data-install="1">Instalar app</button></div>';
+    } else if (isIOS()) {
+      html = '<div class="install"><strong>Instalar en iPhone/iPad:</strong> toca <em>Compartir</em> y luego '
+        + '<em>Añadir a pantalla de inicio</em>. (Compartir &gt; Añadir a pantalla de inicio)</div>';
+    }
+  }
+  $('installBoxLogin').innerHTML = html;
+  $('installBoxHoy').innerHTML = html;
+}
+
+function onInstallClick(ev) {
+  var t = ev.target;
+  if (!t.getAttribute || !t.getAttribute('data-install') || !deferredPrompt) return;
+  var p = deferredPrompt;
+  deferredPrompt = null;
+  p.prompt();
+  if (p.userChoice && p.userChoice.then) p.userChoice.then(renderInstall, renderInstall);
+  else renderInstall();
+}
+
+window.addEventListener('beforeinstallprompt', function (ev) {
+  ev.preventDefault();
+  deferredPrompt = ev;
+  renderInstall();
+});
+window.addEventListener('appinstalled', function () { deferredPrompt = null; renderInstall(); });
+$('installBoxLogin').addEventListener('click', onInstallClick);
+$('installBoxHoy').addEventListener('click', onInstallClick);
+renderInstall();
+
 // ══ INIT ══
 $('loginForm').addEventListener('submit', doLogin);
 $('btnLogout').addEventListener('click', doLogout);
