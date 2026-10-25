@@ -118,9 +118,103 @@ function restoreSession() {
 
 function enterApp() {
   showHoy();
+  loadHoy();
+}
+
+// ══ HOY ══
+var DAYS_ES = { Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles', Thursday: 'Jueves',
+                Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo' };
+var TZ = 'America/Santiago';
+var busy = false; // true mientras hay una petición de marcar/desmarcar o carga
+
+// Día de la semana actual en Santiago, con el formato que espera la API (Lunes…Domingo)
+function diaHoy() {
+  var en = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'long' }).format(new Date());
+  return DAYS_ES[en];
+}
+
+function fechaLarga() {
+  return new Intl.DateTimeFormat('es-CL', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+}
+
+function isOffline() { return navigator.onLine === false; }
+
+function setBusy(v) {
+  busy = v;
+  $('btnRefresh').disabled = v;
+  applyButtonsState();
+}
+
+// Deshabilita marcar/desmarcar si hay petición en curso o no hay conexión
+function applyButtonsState() {
+  var btns = document.querySelectorAll('#hoyContent .btn[data-reserva]');
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = busy || isOffline();
+}
+
+function renderBloque(b) {
+  var reservas = b.reservas || [];
+  var asist = reservas.filter(function (r) { return r.asistio; }).length;
+  var suspendido = b.estado === 'suspendido';
+  var filas = reservas.length
+    ? reservas.map(function (r) {
+        return '<div class="row"><div class="name">' + esc(r.nombre)
+          + (r.telefono ? '<span class="tel">' + esc(r.telefono) + '</span>' : '') + '</div>'
+          + '<button type="button" class="btn ' + (r.asistio ? 'done' : 'pending') + '"'
+          + ' data-reserva="' + esc(r.reserva_id) + '" data-asistencia="' + esc(r.asistencia_id || '') + '">'
+          + (r.asistio ? '✓ Asistió' : 'Marcar') + '</button></div>';
+      }).join('')
+    : '<div class="empty-row">Sin reservas en este bloque.</div>';
+  return '<section class="card"><div class="card-head"><div class="h">' + esc(b.horario)
+    + (suspendido ? '<span class="tag">Suspendido</span>' : '') + '</div>'
+    + '<span class="counter">' + asist + '/' + reservas.length + ' asistentes</span></div>' + filas + '</section>';
+}
+
+function loadHoy() {
+  var dia = diaHoy();
+  $('hoyDia').textContent = dia + ', ' + fechaLarga();
+  var el = $('hoyContent');
+  el.innerHTML = '<div class="state">Cargando…</div>';
+  setBusy(true);
+  return apiRequest('/asistencias?dia=' + encodeURIComponent(dia))
+    .then(function (data) {
+      var bloques = data.bloques || [];
+      el.innerHTML = bloques.length
+        ? bloques.map(renderBloque).join('')
+        : '<div class="empty">No hay bloques programados para hoy.</div>';
+    })
+    .catch(function (e) {
+      if (e.status === 401) return; // ya se mostró el login
+      el.innerHTML = '<div class="state error">' + esc(e.message || 'Error al cargar') + '</div>';
+    })
+    .then(function () { setBusy(false); });
+}
+
+function toggleAsistencia(btn) {
+  if (busy || isOffline()) return;
+  var reservaId = btn.getAttribute('data-reserva');
+  var asistenciaId = btn.getAttribute('data-asistencia');
+  var req = asistenciaId
+    ? apiRequest('/asistencias/' + encodeURIComponent(asistenciaId), { method: 'DELETE' })
+    : apiRequest('/asistencias', { method: 'POST', body: JSON.stringify({ reserva_id: Number(reservaId) }) });
+  setBusy(true);
+  req.then(function () { return null; }, function (e) {
+    if (e.status === 401) return 'stop';
+    // 409/404: el estado cambió en otro dispositivo; se refresca igual
+    if (e.status !== 409 && e.status !== 404) window.alert(e.message || 'Error al actualizar asistencia');
+    return null;
+  }).then(function (stop) {
+    setBusy(false);
+    if (stop !== 'stop') loadHoy();
+  });
 }
 
 // ══ INIT ══
 $('loginForm').addEventListener('submit', doLogin);
 $('btnLogout').addEventListener('click', doLogout);
+$('btnRefresh').addEventListener('click', loadHoy);
+$('hoyContent').addEventListener('click', function (ev) {
+  var t = ev.target;
+  while (t && t !== this && !(t.getAttribute && t.getAttribute('data-reserva'))) t = t.parentNode;
+  if (t && t !== this) toggleAsistencia(t);
+});
 restoreSession();
