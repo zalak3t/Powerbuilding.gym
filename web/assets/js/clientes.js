@@ -6,14 +6,14 @@ var adminClientsCache=[];
 async function renderClients(filter){
   if(filter!==undefined)clientFilter=filter;
   var search=clientFilter?'?search='+encodeURIComponent(clientFilter):'';
-  document.getElementById('clientTable').innerHTML='<tr><td colspan="7" style="color:var(--amuted);padding:1rem">Cargando clientes...</td></tr>';
+  document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">Cargando clientes...</td></tr>';
   try {
     var data=await apiRequest('/clientes'+search);
     adminClientsCache=data.clientes||[];
     var total=adminClientsCache.length;
     document.getElementById('clientCount').textContent=total+' cliente'+(total!==1?'s':'')+(clientFilter?' encontrados':' registrados');
     if(!total){
-      document.getElementById('clientTable').innerHTML='<tr><td colspan="7" style="color:var(--amuted);padding:1rem">No hay clientes'+(clientFilter?' con ese criterio':'')+'.</td></tr>';
+      document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">No hay clientes'+(clientFilter?' con ese criterio':'')+'.</td></tr>';
       return;
     }
     document.getElementById('clientTable').innerHTML=adminClientsCache.map(function(c){
@@ -25,6 +25,7 @@ async function renderClients(filter){
         +'<td><span class="abadge blue">'+esc(c.reservas)+'</span></td>'
         +'<td><span class="abadge green">'+esc(c.asistencias)+'</span></td>'
         +'<td><span class="abadge '+statusBadge+'">'+esc(c.estado)+'</span></td>'
+        +'<td>'+membresiaBadge(c)+(c.vence_el?'<div style="font-size:10px;color:var(--amuted2);margin-top:3px">vence '+esc(formatFechaCL(c.vence_el))+'</div>':'')+'</td>'
         +'<td><div class="abtn-row">'
         +'<button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="openFicha('+c.id+')">Ver ficha</button>'
         +'<button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="openEditClient('+c.id+')">Editar</button>'
@@ -33,7 +34,7 @@ async function renderClients(filter){
         +'</div></td></tr>';
     }).join('');
   } catch(e) {
-    document.getElementById('clientTable').innerHTML='<tr><td colspan="7" style="color:var(--red);padding:1rem">Error al cargar clientes.</td></tr>';
+    document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--red);padding:1rem">Error al cargar clientes.</td></tr>';
     adminToast(e.message||'Error al cargar clientes','err');
   }
 }
@@ -128,12 +129,27 @@ async function openFicha(id){
       +'<div style="background:var(--abg3);border-radius:10px;padding:.75rem;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--amber)">'+attPct+'%</div><div style="font-size:10px;color:var(--amuted2);margin-top:2px;text-transform:uppercase">Tasa</div></div>'
       +'</div>';
     if(cliente.notas)html+='<div style="background:var(--amber-dim);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:13px;color:var(--amber)">📝 '+esc(cliente.notas)+'</div>';
+    var pagos=cliente.pagos||[];
+    html+='<div style="background:var(--abg3);border-radius:10px;padding:.75rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+      +'<div><div style="font-size:10px;color:var(--amuted2);text-transform:uppercase;letter-spacing:.06em">Membresía</div>'
+      +'<div style="font-size:13px;color:var(--atext);margin-top:3px">'+(cliente.vence_el?'Vence el '+esc(formatFechaCL(cliente.vence_el)):'Sin plan registrado')+'</div></div>'
+      +membresiaBadge(cliente)+'</div>';
     html+='<div style="font-size:10px;color:var(--amuted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">Bloques reservados ('+bloques.length+')</div>';
     html+=bloques.slice(0,5).map(function(br){
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--aborder)">'
         +'<span style="font-size:13px;color:var(--atext)">'+esc(br.dia)+' '+esc(br.horario)+'</span>'
         +'<span class="abadge '+(br.asistio?'green':'blue')+'">'+(br.asistio?'Asistió':'Reservado')+'</span></div>';
     }).join('');
+    html+='<div style="font-size:10px;color:var(--amuted2);text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .5rem">Historial de pagos ('+pagos.length+')</div>';
+    if(!pagos.length)html+='<div style="font-size:12px;color:var(--amuted)">Sin pagos registrados.</div>';
+    html+=pagos.slice(0,5).map(function(pg){
+      var anulado=pg.estado==='anulado';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--aborder)'+(anulado?';opacity:.55':'')+'">'
+        +'<div style="min-width:0"><div style="font-size:13px;color:var(--atext)">'+esc(pg.plan_nombre)+' · '+esc(formatCLP(pg.monto))+'</div>'
+        +'<div style="font-size:11px;color:var(--amuted2)">'+esc(formatFechaCL(pg.periodo_desde))+' → '+esc(formatFechaCL(pg.periodo_hasta))+' · '+esc(pg.metodo)+'</div></div>'
+        +'<span class="abadge '+(anulado?'muted':'green')+'">'+esc(pg.estado)+'</span></div>';
+    }).join('');
+    if(pagos.length>5)html+='<div style="font-size:11px;color:var(--amuted2);padding-top:6px">y '+(pagos.length-5)+' más en la sección Pagos.</div>';
     html+='<div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">'
       +'<a href="https://wa.me/'+(cliente.telefono||'').replace(/\D/g,'')+'" target="_blank" class="abtn success" style="text-decoration:none;font-size:12px">💬 WhatsApp</a>'
       +'<button class="abtn ghost" onclick="openEditClient('+cliente.id+');closeAModal(\'modalFicha\')">Editar ficha</button>'

@@ -124,7 +124,67 @@
   </div>
 </div>
 
-<div class="amodal-bg" id="modalFicha" onclick="if(event.target===this)closeAModal('modalFicha')">
+<div class="amodal-bg" id="modalPlan" onclick="if(event.target===this)closeAModal('modalPlan')">
+  <div class="amodal">
+    <button class="amodal-close" onclick="closeAModal('modalPlan')">×</button>
+    <h3 id="modalPlanTitle">Nuevo Plan</h3>
+    <div class="mfield"><label>Nombre</label><input type="text" id="plName" maxlength="80"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="mfield"><label>Duración (días)</label><input type="number" id="plDias" min="1" step="1" inputmode="numeric"/></div>
+      <div class="mfield"><label>Precio (CLP)</label><input type="number" id="plPrecio" min="0" step="1" inputmode="numeric"/></div>
+    </div>
+    <div class="mfield"><label>Descripción</label><textarea id="plDesc" maxlength="500" placeholder="Opcional"></textarea></div>
+    <div class="mfield"><label>Beneficios</label><textarea id="plBenef" maxlength="1000" placeholder="Opcional"></textarea></div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalPlan')">Cancelar</button>
+      <button class="abtn primary" onclick="savePlan()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalPago" onclick="if(event.target===this)closeAModal('modalPago')">
+  <div class="amodal">
+    <button class="amodal-close" onclick="closeAModal('modalPago')">×</button>
+    <h3>Registrar pago</h3>
+    <div class="mfield"><label>Cliente</label><select id="pgCliente"><option value="">Selecciona un cliente</option></select></div>
+    <div class="mfield"><label>Plan</label><select id="pgPlan" onchange="onPagoPlanChange()"><option value="">Selecciona un plan</option></select></div>
+    <div class="pago-grid">
+      <div class="mfield"><label>Monto (CLP)</label><input type="number" id="pgMonto" min="0" step="1" inputmode="numeric"/></div>
+      <div class="mfield"><label>Método</label><select id="pgMetodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="otro">Otro</option></select></div>
+      <div class="mfield"><label>Fecha de pago</label><input type="date" id="pgFecha" onchange="onPagoPlanChange(true)"/></div>
+      <div class="mfield"><label>Vigencia desde</label><input type="date" id="pgDesde" onchange="onPagoPlanChange(true)"/></div>
+    </div>
+    <div id="pgVigencia" style="font-size:12px;color:var(--amuted2);margin-bottom:.875rem"></div>
+    <div class="mfield"><label>Notas</label><input type="text" id="pgNotas" maxlength="500" placeholder="Opcional"/></div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalPago')">Cancelar</button>
+      <button class="abtn primary" onclick="savePago()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalPlantilla" onclick="if(event.target===this)closeAModal('modalPlantilla')">
+  <div class="amodal" style="max-width:560px">
+    <button class="amodal-close" onclick="closeAModal('modalPlantilla')">×</button>
+    <h3 id="modalPlantillaTitle">Editar plantilla</h3>
+    <div class="mfield"><label>Asunto</label><input type="text" id="ptAsunto" maxlength="150"/></div>
+    <div class="mfield"><label>Cuerpo <span id="ptCount" style="text-transform:none;letter-spacing:0;font-weight:400"></span></label><textarea id="ptCuerpo" maxlength="2000" rows="8" style="min-height:160px" oninput="updatePlantillaCount()"></textarea></div>
+    <div class="mfield"><label>Variables disponibles</label><div id="ptVars" style="font-size:12px;color:var(--amuted2);line-height:1.9"></div></div>
+    <div class="mfield"><label>Estado</label><select id="ptActivo"><option value="true">Activa</option><option value="false">Inactiva</option></select></div>
+    <div id="ptPreview" style="display:none;background:var(--abg3);border:1px solid var(--aborder);border-radius:10px;padding:.875rem;margin-bottom:.875rem">
+      <div style="font-size:10px;color:var(--amuted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Vista previa (datos de ejemplo)</div>
+      <div id="ptPreviewAsunto" style="font-size:13px;font-weight:700;color:var(--atext);margin-bottom:.4rem;overflow-wrap:anywhere"></div>
+      <div id="ptPreviewCuerpo" style="font-size:13px;color:var(--atext);white-space:pre-wrap;overflow-wrap:anywhere"></div>
+    </div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalPlantilla')">Cancelar</button>
+      <button class="abtn ghost" onclick="previewPlantilla()">Vista previa</button>
+      <button class="abtn primary" onclick="savePlantilla()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalFicha"onclick="if(event.target===this)closeAModal('modalFicha')">
   <div class="amodal" style="max-width:480px"><button class="amodal-close" onclick="closeAModal('modalFicha')">×</button><div id="fichaContent"></div></div>
 </div>
 
@@ -271,6 +331,18 @@
       <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <span class="nav-label">Administradores</span>
     </button>
+    <button class="nav-item" id="nav-planes" onclick="goTo('planes')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+      <span class="nav-label">Planes</span>
+    </button>
+    <button class="nav-item" id="nav-pagos" onclick="goTo('pagos')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.7 2.5 1.7c0 2.3-5 1.3-5 3.6 0 1 1 1.7 2.5 1.7s2.5-.5 2.5-1.5"/></svg>
+      <span class="nav-label">Pagos</span>
+    </button>
+    <button class="nav-item" id="nav-plantillas" onclick="goTo('plantillas')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      <span class="nav-label">Plantillas</span>
+    </button>
     <div class="sb-divider"></div>
     <div class="sb-bottom">
       <div class="sb-user">
@@ -323,7 +395,7 @@
         <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre o email..." oninput="filterClients(this.value)"/></div>
         <div class="tcard">
           <table class="atbl">
-            <thead><tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Reservas</th><th>Asistencias</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Reservas</th><th>Asistencias</th><th>Estado</th><th>Membresía</th><th>Acciones</th></tr></thead>
             <tbody id="clientTable"></tbody>
           </table>
         </div>
@@ -408,6 +480,55 @@
         </div>
       </div>
 
+      <!-- PLANES -->
+      <div class="apage" id="apage-planes">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Planes y membresías</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px" id="planCount"></div></div>
+          <button class="abtn primary" onclick="openAddPlan()">+ Nuevo plan</button>
+        </div>
+        <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre o descripción..." oninput="filterPlanes(this.value)"/></div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Plan</th><th>Duración</th><th>Precio</th><th>Pagos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="planTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PAGOS -->
+      <div class="apage" id="apage-pagos">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Pagos</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px" id="pagoCount"></div></div>
+          <button class="abtn primary" onclick="openAddPago()">+ Registrar pago</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:.5rem">
+          <div class="mfield" style="flex:2 1 200px;margin-bottom:.5rem"><label>Cliente</label><select id="pfCliente" onchange="applyPagoFilters()"><option value="">Todos los clientes</option></select></div>
+          <div class="mfield" style="flex:1 1 130px;margin-bottom:.5rem"><label>Desde</label><input type="date" id="pfDesde" onchange="applyPagoFilters()"/></div>
+          <div class="mfield" style="flex:1 1 130px;margin-bottom:.5rem"><label>Hasta</label><input type="date" id="pfHasta" onchange="applyPagoFilters()"/></div>
+          <div style="margin-bottom:.5rem"><button class="abtn ghost" onclick="clearPagoFilters()">Limpiar</button></div>
+        </div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th>Monto</th><th>Método</th><th>Período</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="pagoTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PLANTILLAS -->
+      <div class="apage" id="apage-plantillas">
+        <div style="margin-bottom:1rem">
+          <div style="font-size:15px;font-weight:700;color:var(--atext)">Plantillas de notificación</div>
+          <div style="font-size:12px;color:var(--amuted2);margin-top:2px">Mensajes que se enviarán a los clientes. Puedes editarlos, no crear ni borrar.</div>
+        </div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Plantilla</th><th>Asunto</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="plantillaTable"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -430,6 +551,9 @@
 <script src="assets/js/disciplinas.js"></script>
 <script src="assets/js/instructores.js"></script>
 <script src="assets/js/admins.js"></script>
+<script src="assets/js/planes.js"></script>
+<script src="assets/js/pagos.js"></script>
+<script src="assets/js/plantillas.js"></script>
 <script src="assets/js/asistencia.js"></script>
 <script src="assets/js/negocio.js"></script>
 <script src="assets/js/admin-core.js"></script>
