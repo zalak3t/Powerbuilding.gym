@@ -15,6 +15,7 @@ const statsRouter       = require('./routes/stats.routes');
 const disciplinasRouter = require('./routes/disciplinas.routes');
 const instructoresRouter = require('./routes/instructores.routes');
 const adminsRouter = require('./routes/admins.routes');
+const planesRouter = require('./routes/planes.routes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/stats',        statsRouter);
 app.use('/api/disciplinas',  disciplinasRouter);
 app.use('/api/instructores', instructoresRouter);
 app.use('/api/admins',       adminsRouter);
+app.use('/api/planes',       planesRouter);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
