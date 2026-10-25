@@ -1,0 +1,57 @@
+/* PWA admin móvil — variables tomadas de assets/css/styles.css */
+:root{
+  --pink:#E91E8C;--gold:#F5A623;
+  --abg:#0a0c10;--abg2:#0f1117;--abg3:#151820;--abg4:#1a1f2c;
+  --aborder:#1e2330;--aborder2:#252d3d;
+  --atext:#e2e8f0;--amuted:#4a5568;--amuted2:#64748b;
+  --blue:#3b82f6;--gren:#10b981;--gren-dim:rgba(16,185,129,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);--amber:#f59e0b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--abg);color:var(--atext);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px}
+body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+[hidden]{display:none!important}
+.view{max-width:640px;margin:0 auto}
+.sub{color:var(--amuted2);font-size:14px}
+
+.offline-bar{position:sticky;top:0;z-index:10;background:var(--amber);color:#000;text-align:center;padding:10px 12px;font-weight:600;font-size:14px}
+
+/* Botones: objetivo táctil mínimo 44px */
+.btn{min-height:44px;min-width:44px;padding:0 16px;border-radius:10px;border:1px solid var(--aborder2);background:var(--abg4);color:var(--atext);font-size:15px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--pink);border-color:var(--pink);color:#fff;width:100%}
+
+/* Login */
+#viewLogin{padding:calc(24px + env(safe-area-inset-top)) 16px 24px}
+.login-card{background:var(--abg2);border:1px solid var(--aborder);border-radius:16px;padding:24px 20px;margin-top:8vh}
+.logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#E91E8C,#F5A623);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#fff;margin-bottom:12px}
+.login-card h1{margin:0;font-size:22px}
+.login-card .sub{margin:2px 0 18px}
+label{display:block;font-size:13px;color:var(--amuted2);margin:12px 0 6px}
+input{width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--aborder2);background:var(--abg3);color:var(--atext);font-size:16px}
+input:focus{outline:2px solid var(--pink);outline-offset:1px}
+.err{color:var(--red);background:var(--red-dim);border-radius:8px;padding:10px 12px;font-size:14px;margin:12px 0 0}
+#lBtn{margin-top:18px}
+
+/* Hoy */
+.topbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:var(--abg);border-bottom:1px solid var(--aborder)}
+.topbar .title{font-size:22px;font-weight:800}
+.topbar .actions{display:flex;gap:8px}
+.content{padding:16px}
+.card{background:var(--abg2);border:1px solid var(--aborder);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:var(--abg3);border-bottom:1px solid var(--aborder)}
+.card-head .h{font-weight:700;font-size:17px}
+.counter{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--gren-dim);color:var(--gren)}
+.tag{font-size:12px;font-weight:600;color:var(--amber);margin-left:8px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--aborder)}
+.row:last-child{border-bottom:0}
+.row .name{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis}
+.row .tel{display:block;font-size:12px;color:var(--amuted2)}
+.row .btn{min-height:48px;min-width:132px}
+.row .btn.pending{background:var(--abg4)}
+.row .btn.done{background:var(--gren-dim);border-color:var(--gren);color:var(--gren)}
+.empty,.state{text-align:center;color:var(--amuted2);padding:28px 12px;font-size:15px}
+.state.error{color:var(--red)}
+.empty-row{padding:14px;color:var(--amuted2);font-size:14px}
+.install{background:var(--abg2);border:1px dashed var(--aborder2);border-radius:14px;padding:14px;margin-top:8px;font-size:14px;color:var(--amuted2)}
+.install .btn{margin-top:10px;width:100%}

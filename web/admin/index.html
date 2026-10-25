@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Powerbuilding.gym Admin</title>
+<meta name="theme-color" content="#0a0c10"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PB Admin"/>
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon-180.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="../assets/icons/icon-192.png"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+
+<div id="offlineBar" class="offline-bar" hidden>Sin conexión — no se puede marcar asistencia</div>
+
+<!-- Login -->
+<main id="viewLogin" class="view" hidden>
+  <div class="login-card">
+    <div class="logo">PB</div>
+    <h1>Powerbuilding.gym</h1>
+    <p class="sub">Acceso administración</p>
+    <form id="loginForm" novalidate>
+      <label for="lEmail">Email</label>
+      <input id="lEmail" type="email" autocomplete="username" inputmode="email" required/>
+      <label for="lPass">Contraseña</label>
+      <input id="lPass" type="password" autocomplete="current-password" required/>
+      <p id="lErr" class="err" role="alert" hidden></p>
+      <button id="lBtn" class="btn primary" type="submit">Ingresar</button>
+    </form>
+    <div id="installBoxLogin"></div>
+  </div>
+</main>
+
+<!-- Hoy -->
+<main id="viewHoy" class="view" hidden>
+  <header class="topbar">
+    <div>
+      <div class="title">Hoy</div>
+      <div class="sub" id="hoyDia"></div>
+    </div>
+    <div class="actions">
+      <button id="btnRefresh" class="btn" type="button">Actualizar</button>
+      <button id="btnLogout" class="btn" type="button">Salir</button>
+    </div>
+  </header>
+  <div id="hoyContent" class="content"></div>
+  <div id="installBoxHoy" class="content"></div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
