@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { HOY_CL_SQL } = require('../utils/fechas');
 
 const DIAS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 function diaHoyEs() {
@@ -41,7 +42,7 @@ async function getResumenReservasAsistencias() {
       COUNT(DISTINCT rv.id) FILTER (WHERE b.dia = $1)::int  AS reservas_hoy
     FROM reservas rv
     JOIN bloques b ON b.id = rv.bloque_id
-    LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = CURRENT_DATE
+    LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = ${HOY_CL_SQL}
   `, [dia]);
   return r.rows[0];
 }
@@ -97,7 +98,7 @@ async function getActividadReciente() {
     FROM reservas rv
     JOIN clientes   c ON c.id = rv.cliente_id
     JOIN bloques    b ON b.id = rv.bloque_id
-    LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = CURRENT_DATE
+    LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = ${HOY_CL_SQL}
     ORDER BY rv.creado_en DESC
     LIMIT 6
   `);
@@ -206,13 +207,13 @@ async function getClientesRiesgo() {
       c.ultima_visita,
       CASE
         WHEN c.ultima_visita IS NULL THEN 999
-        ELSE (CURRENT_DATE - c.ultima_visita)::int
+        ELSE (${HOY_CL_SQL} - c.ultima_visita)::int
       END                           AS dias_sin_visita,
       COUNT(rv.id)::int             AS reservas
     FROM clientes c
     LEFT JOIN reservas rv ON rv.cliente_id = c.id
     WHERE c.estado = 'activo'
-      AND (c.ultima_visita IS NULL OR CURRENT_DATE - c.ultima_visita > 14)
+      AND (c.ultima_visita IS NULL OR ${HOY_CL_SQL} - c.ultima_visita > 14)
     GROUP BY c.id
     ORDER BY dias_sin_visita DESC
     LIMIT 5

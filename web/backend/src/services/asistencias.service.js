@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { HOY_CL_SQL, hoyChile } = require('../utils/fechas');
 
 const VALID_DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
@@ -22,7 +23,7 @@ async function getAsistenciaPorDia(dia) {
      LEFT JOIN reservas    r ON r.bloque_id  = b.id
      LEFT JOIN clientes    c ON c.id         = r.cliente_id
      LEFT JOIN asistencias a ON a.reserva_id = r.id
-                             AND a.fecha     = CURRENT_DATE
+                             AND a.fecha     = ${HOY_CL_SQL}
      WHERE b.dia = $1
      ORDER BY
        b.horario,
@@ -70,7 +71,7 @@ async function getReservaById(reservaId) {
 
 async function getAsistenciaByReservaToday(reservaId) {
   const result = await query(
-    'SELECT id FROM asistencias WHERE reserva_id = $1 AND fecha = CURRENT_DATE',
+    `SELECT id FROM asistencias WHERE reserva_id = $1 AND fecha = ${HOY_CL_SQL}`,
     [reservaId]
   );
   return result.rows[0] || null;
@@ -79,9 +80,9 @@ async function getAsistenciaByReservaToday(reservaId) {
 async function createAsistencia(reservaId) {
   const result = await query(
     `INSERT INTO asistencias (reserva_id, fecha)
-     VALUES ($1, CURRENT_DATE)
+     VALUES ($1, $2)
      RETURNING id, reserva_id, fecha`,
-    [reservaId]
+    [reservaId, hoyChile()]
   );
   return result.rows[0];
 }
