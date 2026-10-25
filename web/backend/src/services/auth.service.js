@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
+const { withTransaction } = require('../utils/tx');
 
 const SALT_ROUNDS = 12;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -39,29 +40,33 @@ async function getUserById(id) {
   return result.rows[0] || null;
 }
 
+// Crea usuario + cliente en una transacción. Si el admin ya había creado un cliente con ese
+// email sin usuario asociado, se vincula al usuario nuevo (conserva sus notas/estado).
 async function createUserWithClient(data) {
   const { nombre, email, telefono, password } = data;
   const emailLower = email.toLowerCase();
   const passwordHash = await hashPassword(password);
 
-  // Insertar usuario
-  const userResult = await query(
-    `INSERT INTO usuarios (nombre, email, telefono, password_hash, rol)
-     VALUES ($1, $2, $3, $4, 'alumno')
-     RETURNING id, nombre, email, rol`,
-    [nombre, emailLower, telefono || null, passwordHash]
-  );
-  const user = userResult.rows[0];
+  return withTransaction(async (client) => {
+    const userResult = await client.query(
+      `INSERT INTO usuarios (nombre, email, telefono, password_hash, rol)
+       VALUES ($1, $2, $3, $4, 'alumno')
+       RETURNING id, nombre, email, rol`,
+      [nombre, emailLower, telefono || null, passwordHash]
+    );
+    const user = userResult.rows[0];
 
-  // Insertar cliente asociado
-  await query(
-    `INSERT INTO clientes (usuario_id, nombre, email, telefono)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (email) DO NOTHING`,
-    [user.id, nombre, emailLower, telefono || null]
-  );
+    await client.query(
+      `INSERT INTO clientes (usuario_id, nombre, email, telefono)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO UPDATE
+         SET usuario_id = EXCLUDED.usuario_id, actualizado_en = NOW()
+         WHERE clientes.usuario_id IS NULL`,
+      [user.id, nombre, emailLower, telefono || null]
+    );
 
-  return user;
+    return user;
+  });
 }
 
 module.exports = { hashPassword, verifyPassword, generateToken, findUserByEmail, getUserById, createUserWithClient };
