@@ -312,7 +312,12 @@
 <script src="assets/js/toast.js"></script>
 <script src="assets/js/carousel.js"></script>
 <!-- Para producción: reemplazar por window.API_BASE_URL = "https://TU-BACKEND.up.railway.app/api"; -->
-<script>window.API_BASE_URL = 'https://powerbuildinggym-production.up.railway.app/api';</script>
+<script>
+  var PB_HOST = window.location.hostname;
+  window.API_BASE_URL = (PB_HOST === 'localhost' || PB_HOST === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : 'https://powerbuildinggym-production.up.railway.app/api';
+</script>
 <script src="assets/js/api.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/dashboard.js"></script>
