@@ -1,4 +1,7 @@
 const app = require('./app');
+const guardLocal = require('./config/guardLocal');
+
+guardLocal();
 
 const PORT = process.env.PORT || 3000;
 
