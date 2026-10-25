@@ -154,4 +154,19 @@ async function ejecutarRevision({ ventanaHoras } = {}) {
   return { recordatorios, vencimientos };
 }
 
-module.exports = { enviarPlantilla, notificarReserva, ejecutarRevision, parseInicio, esDia };
+// Registro para el panel: más recientes primero, filtros opcionales.
+async function listarNotificaciones({ tipo, estado, limit }) {
+  const r = await query(
+    `SELECT id, tipo, cliente_id, destinatario, asunto, estado, detalle, creado_en
+     FROM notificaciones_log
+     WHERE ($1::text IS NULL OR tipo = $1) AND ($2::text IS NULL OR estado = $2)
+     ORDER BY creado_en DESC, id DESC
+     LIMIT $3`,
+    [tipo || null, estado || null, limit]
+  );
+  return r.rows;
+}
+
+module.exports = {
+  enviarPlantilla, notificarReserva, ejecutarRevision, listarNotificaciones, parseInicio, esDia,
+};

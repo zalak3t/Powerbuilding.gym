@@ -19,6 +19,7 @@ const planesRouter = require('./routes/planes.routes');
 const pagosRouter = require('./routes/pagos.routes');
 const plantillasRouter = require('./routes/plantillas.routes');
 const reportesRouter = require('./routes/reportes.routes');
+const notificacionesRouter = require('./routes/notificaciones.routes');
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/planes',       planesRouter);
 app.use('/api/pagos',        pagosRouter);
 app.use('/api/plantillas',   plantillasRouter);
 app.use('/api/reportes',     reportesRouter);
+app.use('/api/notificaciones', notificacionesRouter);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
