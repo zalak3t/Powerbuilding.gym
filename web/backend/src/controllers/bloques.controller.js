@@ -3,6 +3,8 @@ const {
   getAdminBloques, getBloqueById, getInscritosByBloqueId,
   createBloque, updateBloque, updateBloqueEstado, deleteBloque,
 } = require('../services/bloques.service');
+const { getDisciplinaById } = require('../services/disciplinas.service');
+const { getInstructorById } = require('../services/instructores.service');
 const v = require('../utils/validate');
 
 const VALID_DAYS   = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
@@ -26,7 +28,35 @@ function validarBloqueBody(body) {
     return { error: 'estado debe ser "activo" o "suspendido"' };
   }
   if (!v.isOptionalString(mensaje, 200)) return { error: 'El mensaje no puede superar 200 caracteres' };
-  return { dia, horario: horario.trim(), cap, est, mensaje };
+  const disciplina_id = parseRelacionId(body.disciplina_id);
+  if (disciplina_id === false) return { error: 'disciplina_id inválido' };
+  const instructor_id = parseRelacionId(body.instructor_id);
+  if (instructor_id === false) return { error: 'instructor_id inválido' };
+  return { dia, horario: horario.trim(), cap, est, mensaje, disciplina_id, instructor_id };
+}
+
+// undefined -> undefined (no enviado); null o '' -> null (sin asignar); entero positivo -> id; otro -> false
+function parseRelacionId(val) {
+  if (val === undefined) return undefined;
+  if (val === null || val === '') return null;
+  return v.parsePositiveInt(val) || false;
+}
+
+// Valida que la disciplina/instructor exista y este activo. Se acepta uno inactivo solo si ya
+// estaba asignado al bloque (actual), para poder seguir editando el bloque.
+// Devuelve un mensaje de error o null.
+async function validarRelaciones(disciplina_id, instructor_id, actual) {
+  if (disciplina_id && !(actual && actual.disciplina_id === disciplina_id)) {
+    const d = await getDisciplinaById(disciplina_id);
+    if (!d) return 'La disciplina indicada no existe';
+    if (!d.activo) return 'La disciplina indicada está inactiva';
+  }
+  if (instructor_id && !(actual && actual.instructor_id === instructor_id)) {
+    const i = await getInstructorById(instructor_id);
+    if (!i) return 'El instructor indicado no existe';
+    if (!i.activo) return 'El instructor indicado está inactivo';
+  }
+  return null;
 }
 
 // ── Público ───────────────────────────────────────────────────────────────────
@@ -59,9 +89,16 @@ async function crearBloque(req, res) {
   const val = validarBloqueBody(req.body);
   if (val.error) return res.status(400).json({ ok: false, error: val.error });
   const { dia, horario, cap, est, mensaje } = val;
+  const disciplina_id = val.disciplina_id || null;
+  const instructor_id = val.instructor_id || null;
+
+  const relError = await validarRelaciones(disciplina_id, instructor_id, null);
+  if (relError) return res.status(400).json({ ok: false, error: relError });
 
   try {
-    const bloque = await createBloque({ dia, horario, capacidad: cap, estado: est, mensaje: mensaje || '' });
+    const bloque = await createBloque({
+      dia, horario, capacidad: cap, estado: est, mensaje: mensaje || '', disciplina_id, instructor_id,
+    });
     return res.status(201).json({ ok: true, message: 'Bloque creado correctamente', bloque });
   } catch (err) {
     if (err.code === '23505') {
@@ -83,6 +120,12 @@ async function editarBloque(req, res) {
   const bloque = await getBloqueById(id);
   if (!bloque) return res.status(404).json({ ok: false, error: 'Bloque no encontrado' });
 
+  // Si no se envían, se conservan los valores actuales; null los deja sin asignar.
+  const disciplina_id = val.disciplina_id === undefined ? bloque.disciplina_id : val.disciplina_id;
+  const instructor_id = val.instructor_id === undefined ? bloque.instructor_id : val.instructor_id;
+  const relError = await validarRelaciones(disciplina_id, instructor_id, bloque);
+  if (relError) return res.status(400).json({ ok: false, error: relError });
+
   const inscritos = await getInscritosByBloqueId(id);
   if (cap < inscritos) {
     return res.status(409).json({
@@ -93,7 +136,7 @@ async function editarBloque(req, res) {
 
   try {
     const updated = await updateBloque(id, {
-      dia, horario, capacidad: cap, estado: est,
+      dia, horario, capacidad: cap, estado: est, disciplina_id, instructor_id,
       mensaje: mensaje !== undefined ? mensaje : (bloque.mensaje || ''),
     });
     return res.json({ ok: true, message: 'Bloque actualizado correctamente', bloque: updated });

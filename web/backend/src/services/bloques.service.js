@@ -17,6 +17,8 @@ async function getBloques({ dia, userId }) {
   const sql = `
     SELECT
       b.id, b.dia, b.horario, b.capacidad, b.estado, b.mensaje,
+      b.disciplina_id, b.instructor_id,
+      d.nombre AS disciplina_nombre, i.nombre AS instructor_nombre,
       COUNT(r.id)::int AS inscritos,
       ${userId
         ? `MAX(CASE WHEN c.usuario_id = $${params.length + 1} THEN r.id END) AS reserva_id,
@@ -24,10 +26,12 @@ async function getBloques({ dia, userId }) {
         : `NULL AS reserva_id, FALSE AS reservado_por_mi`
       }
     FROM bloques b
+    LEFT JOIN disciplinas d ON d.id = b.disciplina_id
+    LEFT JOIN instructores i ON i.id = b.instructor_id
     LEFT JOIN reservas r ON r.bloque_id = b.id
     ${userId ? `LEFT JOIN clientes c ON c.id = r.cliente_id` : ''}
     ${whereClause}
-    GROUP BY b.id
+    GROUP BY b.id, d.id, i.id
     ${ORDER_SQL}
   `;
 
@@ -57,11 +61,15 @@ async function getAdminBloques({ dia } = {}) {
 
   const sql = `
     SELECT b.id, b.dia, b.horario, b.capacidad, b.estado, b.mensaje,
+           b.disciplina_id, b.instructor_id,
+           d.nombre AS disciplina_nombre, i.nombre AS instructor_nombre,
            COUNT(r.id)::int AS inscritos, b.creado_en, b.actualizado_en
     FROM bloques b
+    LEFT JOIN disciplinas d ON d.id = b.disciplina_id
+    LEFT JOIN instructores i ON i.id = b.instructor_id
     LEFT JOIN reservas r ON r.bloque_id = b.id
     ${where}
-    GROUP BY b.id
+    GROUP BY b.id, d.id, i.id
     ${ORDER_SQL}
   `;
   const result = await query(sql, params);
@@ -81,23 +89,24 @@ async function getInscritosByBloqueId(id) {
   return result.rows[0].inscritos;
 }
 
-async function createBloque({ dia, horario, capacidad, estado, mensaje }) {
+async function createBloque({ dia, horario, capacidad, estado, mensaje, disciplina_id, instructor_id }) {
   const result = await query(
-    `INSERT INTO bloques (dia, horario, capacidad, estado, mensaje)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO bloques (dia, horario, capacidad, estado, mensaje, disciplina_id, instructor_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [dia, horario, capacidad, estado, mensaje]
+    [dia, horario, capacidad, estado, mensaje, disciplina_id, instructor_id]
   );
   return result.rows[0];
 }
 
-async function updateBloque(id, { dia, horario, capacidad, estado, mensaje }) {
+async function updateBloque(id, { dia, horario, capacidad, estado, mensaje, disciplina_id, instructor_id }) {
   const result = await query(
     `UPDATE bloques
-     SET dia=$1, horario=$2, capacidad=$3, estado=$4, mensaje=$5, actualizado_en=NOW()
-     WHERE id=$6
+     SET dia=$1, horario=$2, capacidad=$3, estado=$4, mensaje=$5,
+         disciplina_id=$6, instructor_id=$7, actualizado_en=NOW()
+     WHERE id=$8
      RETURNING *`,
-    [dia, horario, capacidad, estado, mensaje, id]
+    [dia, horario, capacidad, estado, mensaje, disciplina_id, instructor_id, id]
   );
   return result.rows[0] || null;
 }
