@@ -40,9 +40,7 @@ async function doLogin(){
     curUser=data.user;
     closeAuth();
     if(curUser.rol==='admin'){
-      document.getElementById('landing').style.display='none';
-      document.getElementById('adminApp').classList.add('show');
-      initAdmin();
+      showAdminPanel();
     } else {
       updateNav();
       renderLandingBlocks();
@@ -51,6 +49,23 @@ async function doLogin(){
   } catch(e) {
     err.textContent=e.message||'Email o contraseña incorrectos';err.classList.add('show');
   }
+}
+
+function showAdminPanel(){
+  document.getElementById('landing').style.display='none';
+  document.getElementById('adminApp').classList.add('show');
+  initAdmin();
+}
+
+// Token vencido: limpia la sesión y vuelve a la landing
+function handleSessionExpired(){
+  clearToken();
+  curUser=null;
+  document.getElementById('adminApp').classList.remove('show');
+  document.getElementById('landing').style.display='block';
+  updateNav();
+  renderLandingBlocks();
+  lndToast('Sesión expirada','err');
 }
 
 function doLogout(){
@@ -80,6 +95,7 @@ async function checkExistingSession(){
     var data=await apiRequest('/auth/me');
     curUser=data.user;
     updateNav();
+    if(curUser.rol==='admin'){showAdminPanel();return;}
     renderLandingBlocks();
   } catch(e) {
     clearToken();

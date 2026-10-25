@@ -19,6 +19,11 @@ async function apiRequest(path, options) {
   var headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders(), opts.headers || {});
   var res = await fetch(API_BASE_URL + path, Object.assign({}, opts, { headers: headers }));
   var data = await res.json();
+  // Token vencido/inválido: cerrar sesión. El login también responde 401 (credenciales malas): se excluye.
+  if (res.status === 401 && path !== '/auth/login') {
+    handleSessionExpired();
+    throw new Error('Sesión expirada');
+  }
   if (!res.ok) throw new Error(data.error || 'Error del servidor');
   return data;
 }
