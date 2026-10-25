@@ -21,6 +21,7 @@ async function renderBlocksPage(){
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
         +'<div class="block-time">'+esc(b.horario)+'</div><span class="abadge '+(b.estado==='activo'?'blue':'amber')+'">'+esc(b.estado)+'</span></div>'
         +'<div class="block-day">'+esc(b.dia)+' · Cap. '+esc(b.capacidad)+'</div>'
+        +(b.disciplina_nombre||b.instructor_nombre?'<div style="font-size:11px;color:var(--amuted2);margin-bottom:6px">'+(b.disciplina_nombre?'🏋️ '+esc(b.disciplina_nombre):'')+(b.disciplina_nombre&&b.instructor_nombre?' · ':'')+(b.instructor_nombre?'👤 '+esc(b.instructor_nombre):'')+'</div>':'')
         +(b.mensaje?'<div style="font-size:11px;color:var(--amber);margin-bottom:6px">⚠️ '+esc(b.mensaje)+'</div>':'')
         +'<div class="block-bar-bg"><div class="block-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
         +'<div class="block-foot"><span class="block-slots">'+esc(b.inscritos)+'/'+esc(b.capacidad)+' · '+pct+'%</span>'
@@ -38,6 +39,29 @@ async function renderBlocksPage(){
 
 function setBlockDay(d){blockActiveDay=d;renderBlocksPage();}
 
+// Rellena los selects de disciplina/instructor con los activos (más el ya asignado al bloque, si está inactivo)
+var blockOptionsLoaded=false;
+async function loadBlockOptions(sel){
+  blockOptionsLoaded=false;
+  var fill=function(id,items,current){
+    var el=document.getElementById(id);
+    var html='<option value="">Sin asignar</option>'+items.filter(function(x){return x.activo||x.id===current;}).map(function(x){
+      return '<option value="'+x.id+'">'+esc(x.nombre)+(x.activo?'':' (inactivo)')+'</option>';
+    }).join('');
+    el.innerHTML=html;
+    el.value=current?String(current):'';
+  };
+  try {
+    var d=await apiRequest('/disciplinas');
+    var i=await apiRequest('/instructores');
+    fill('bDisc',d.disciplinas||[],sel.disciplina_id);
+    fill('bInst',i.instructores||[],sel.instructor_id);
+    blockOptionsLoaded=true;
+  } catch(e) {
+    adminToast(e.message||'No se pudieron cargar disciplinas e instructores','err');
+  }
+}
+
 function openAddBlock(){
   editBlockId=null;
   document.getElementById('modalBlockTitle').textContent='Nuevo Bloque';
@@ -46,6 +70,7 @@ function openAddBlock(){
   document.getElementById('bCap').value='12';
   document.getElementById('bStatus').value='activo';
   document.getElementById('bMsg').value='';
+  loadBlockOptions({});
   openAModal('modalBlock');
 }
 
@@ -59,6 +84,7 @@ function openEditBlock(id){
   document.getElementById('bCap').value=b.capacidad;
   document.getElementById('bStatus').value=b.estado;
   document.getElementById('bMsg').value=b.mensaje||'';
+  loadBlockOptions(b);
   openAModal('modalBlock');
 }
 
@@ -69,7 +95,15 @@ async function saveBlock(){
   var estado=document.getElementById('bStatus').value;
   var mensaje=document.getElementById('bMsg').value.trim();
   if(!horario){adminToast('Ingresa el horario','err');return;}
-  var body=JSON.stringify({dia:dia,horario:horario,capacidad:capacidad,estado:estado,mensaje:mensaje});
+  var data={dia:dia,horario:horario,capacidad:capacidad,estado:estado,mensaje:mensaje};
+  // Si las opciones no cargaron, no se envían: el servidor conserva disciplina/instructor actuales
+  if(blockOptionsLoaded){
+    var disciplina_id=document.getElementById('bDisc').value;
+    var instructor_id=document.getElementById('bInst').value;
+    data.disciplina_id=disciplina_id?parseInt(disciplina_id,10):null;
+    data.instructor_id=instructor_id?parseInt(instructor_id,10):null;
+  }
+  var body=JSON.stringify(data);
   try {
     if(editBlockId){
       await apiRequest('/bloques/'+editBlockId,{method:'PUT',body:body});

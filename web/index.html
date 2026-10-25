@@ -68,10 +68,58 @@
       <div class="mfield"><label>Capacidad máx.</label><input type="number" id="bCap" value="12" min="1" max="50"/></div>
       <div class="mfield"><label>Estado</label><select id="bStatus"><option value="activo">Activo</option><option value="suspendido">Suspendido</option></select></div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="mfield"><label>Disciplina</label><select id="bDisc"><option value="">Sin asignar</option></select></div>
+      <div class="mfield"><label>Instructor</label><select id="bInst"><option value="">Sin asignar</option></select></div>
+    </div>
     <div class="mfield"><label>Mensaje suspensión</label><input type="text" id="bMsg" placeholder="Feriado, Mantenimiento..."/></div>
     <div class="amodal-footer">
       <button class="abtn ghost" onclick="closeAModal('modalBlock')">Cancelar</button>
       <button class="abtn primary" onclick="saveBlock()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalDisciplina" onclick="if(event.target===this)closeAModal('modalDisciplina')">
+  <div class="amodal">
+    <button class="amodal-close" onclick="closeAModal('modalDisciplina')">×</button>
+    <h3 id="modalDisciplinaTitle">Nueva Disciplina</h3>
+    <div class="mfield"><label>Nombre</label><input type="text" id="dName" maxlength="60"/></div>
+    <div class="mfield"><label>Descripción</label><textarea id="dDesc" maxlength="300" placeholder="Opcional"></textarea></div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalDisciplina')">Cancelar</button>
+      <button class="abtn primary" onclick="saveDisciplina()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalInstructor" onclick="if(event.target===this)closeAModal('modalInstructor')">
+  <div class="amodal">
+    <button class="amodal-close" onclick="closeAModal('modalInstructor')">×</button>
+    <h3 id="modalInstructorTitle">Nuevo Instructor</h3>
+    <div class="mfield"><label>Nombre completo</label><input type="text" id="iName" maxlength="100"/></div>
+    <div class="mfield"><label>Email (opcional)</label><input type="email" id="iEmail" maxlength="150"/></div>
+    <div class="mfield"><label>Teléfono</label><input type="tel" id="iPhone" maxlength="20"/></div>
+    <div class="mfield"><label>Especialidad</label><input type="text" id="iSpec" maxlength="100"/></div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalInstructor')">Cancelar</button>
+      <button class="abtn primary" onclick="saveInstructor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="amodal-bg" id="modalAdmin" onclick="if(event.target===this)closeAModal('modalAdmin')">
+  <div class="amodal">
+    <button class="amodal-close" onclick="closeAModal('modalAdmin')">×</button>
+    <h3 id="modalAdminTitle">Nuevo Administrador</h3>
+    <div class="mfield"><label>Nombre completo</label><input type="text" id="aName" maxlength="100"/></div>
+    <div class="mfield"><label>Email</label><input type="email" id="aEmail" maxlength="150"/></div>
+    <div class="mfield"><label>Teléfono</label><input type="tel" id="aPhone" maxlength="20"/></div>
+    <div class="mfield"><label id="aPassLabel">Contraseña (mín. 8 caracteres)</label><input type="password" id="aPass" maxlength="72" autocomplete="new-password"/></div>
+    <div class="mfield" id="aStatusWrap"><label>Estado</label><select id="aStatus"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+    <div class="amodal-footer">
+      <button class="abtn ghost" onclick="closeAModal('modalAdmin')">Cancelar</button>
+      <button class="abtn primary" onclick="saveAdmin()">Guardar</button>
     </div>
   </div>
 </div>
@@ -211,6 +259,18 @@
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span class="nav-label">Negocio</span>
     </button>
+    <button class="nav-item" id="nav-disciplinas" onclick="goTo('disciplinas')">
+      <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 17.5h11M3 9v6M21 9v6M6 4v16M18 4v16"/></svg>
+      <span class="nav-label">Disciplinas</span>
+    </button>
+    <button class="nav-item" id="nav-instructores" onclick="goTo('instructores')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/></svg>
+      <span class="nav-label">Instructores</span>
+    </button>
+    <button class="nav-item" id="nav-admins" onclick="goTo('admins')">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span class="nav-label">Administradores</span>
+    </button>
     <div class="sb-divider"></div>
     <div class="sb-bottom">
       <div class="sb-user">
@@ -303,6 +363,51 @@
         </div>
       </div>
 
+      <!-- DISCIPLINAS -->
+      <div class="apage" id="apage-disciplinas">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Disciplinas</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px" id="disciplinaCount"></div></div>
+          <button class="abtn primary" onclick="openAddDisciplina()">+ Nueva disciplina</button>
+        </div>
+        <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre o descripción..." oninput="filterDisciplinas(this.value)"/></div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Nombre</th><th>Descripción</th><th>Bloques</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="disciplinaTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- INSTRUCTORES -->
+      <div class="apage" id="apage-instructores">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Instructores</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px" id="instructorCount"></div></div>
+          <button class="abtn primary" onclick="openAddInstructor()">+ Nuevo instructor</button>
+        </div>
+        <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre, email o especialidad..." oninput="filterInstructores(this.value)"/></div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Instructor</th><th>Email</th><th>Teléfono</th><th>Especialidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="instructorTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADMINS -->
+      <div class="apage" id="apage-admins">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Administradores</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px" id="adminCount"></div></div>
+          <button class="abtn primary" onclick="openAddAdmin()">+ Nuevo administrador</button>
+        </div>
+        <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre o email..." oninput="filterAdmins(this.value)"/></div>
+        <div class="tcard">
+          <table class="atbl">
+            <thead><tr><th>Administrador</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="adminTable"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -322,6 +427,9 @@
 <script src="assets/js/dashboard.js"></script>
 <script src="assets/js/clientes.js"></script>
 <script src="assets/js/bloques.js"></script>
+<script src="assets/js/disciplinas.js"></script>
+<script src="assets/js/instructores.js"></script>
+<script src="assets/js/admins.js"></script>
 <script src="assets/js/asistencia.js"></script>
 <script src="assets/js/negocio.js"></script>
 <script src="assets/js/admin-core.js"></script>

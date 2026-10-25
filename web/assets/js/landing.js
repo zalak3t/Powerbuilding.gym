@@ -32,6 +32,7 @@ async function renderLandingBlocks(){
       return '<div class="bcard'+(hasRes?' reserved':'')+(susp?' suspended':'')+'">'
         +'<div class="btime">'+esc(b.horario)+'</div>'
         +'<div class="bday">'+esc(b.dia)+(susp?' · <span style="color:#f59e0b">'+esc(b.mensaje)+'</span>':' · '+esc(taken)+'/'+esc(cap)+' inscritos')+'</div>'
+        +(b.disciplina_nombre||b.instructor_nombre?'<div class="bday" style="margin-top:-8px">'+(b.disciplina_nombre?esc(b.disciplina_nombre):'')+(b.disciplina_nombre&&b.instructor_nombre?' · ':'')+(b.instructor_nombre?'con '+esc(b.instructor_nombre):'')+'</div>':'')
         +'<div class="bbar-wrap"><div class="bbar" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
         +'<div class="bfoot"><span class="bslots" style="color:'+(full?'#ef4444':hasRes?'var(--pink2)':'var(--muted)')+'">'+
         (susp?'Bloque suspendido':hasRes?'✓ Reservado':full?'Sin cupos':free+' cupo'+(free!==1?'s':''))+'</span>'
