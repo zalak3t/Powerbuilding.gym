@@ -1,5 +1,8 @@
 // ══ HELPERS REUTILIZABLES ══
 
+// Días de la semana (orden de las pestañas y del selector de bloques)
+var DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
 // Escapa texto para insertarlo en innerHTML o en atributos HTML (& < > " ')
 function esc(s) {
   if (s === null || s === undefined) return '';
