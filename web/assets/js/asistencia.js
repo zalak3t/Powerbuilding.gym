@@ -15,13 +15,13 @@ async function renderAsistencia(){
       var filas=inscritos
         ?bloque.reservas.map(function(r){
             var ini=getInitials(r.nombre);
-            return '<div class="ci-row"><div class="av" style="background:#1d4ed8;width:28px;height:28px;font-size:10px">'+ini+'</div>'
-              +'<span class="ci-name">'+r.nombre+'</span>'
+            return '<div class="ci-row"><div class="av" style="background:#1d4ed8;width:28px;height:28px;font-size:10px">'+esc(ini)+'</div>'
+              +'<span class="ci-name">'+esc(r.nombre)+'</span>'
               +'<button class="ci-btn '+(r.asistio?'done':'pending')+'" onclick="toggleAtt('+r.reserva_id+','+r.asistencia_id+')">'+(r.asistio?'✓ Asistió':'Marcar asistencia')+'</button></div>';
           }).join('')
         :'<p style="color:var(--amuted);font-size:13px;padding:.25rem 0">Sin inscritos en este bloque.</p>';
       return '<div class="tcard" style="margin-bottom:1rem">'
-        +'<div class="tcard-head"><div><div class="tcard-title">'+bloque.horario+'</div>'
+        +'<div class="tcard-head"><div><div class="tcard-title">'+esc(bloque.horario)+'</div>'
         +'<div class="tcard-sub">'+inscritos+' reservas · '+asistencias+' asistencias · '+attPct+'% tasa</div></div>'
         +'<span class="abadge '+(attPct>=80?'green':attPct>=50?'amber':'red')+'">'+attPct+'%</span></div>'
         +'<div style="padding:.5rem 1rem">'+filas+'</div></div>';

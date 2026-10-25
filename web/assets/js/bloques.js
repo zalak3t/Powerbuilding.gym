@@ -19,11 +19,11 @@ async function renderBlocksPage(){
       var barColor=pct>=100?'var(--red)':pct>=75?'var(--amber)':'var(--blue)';
       return '<div class="block-card'+(isBlockSuspended(b)?' suspended':'')+'">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
-        +'<div class="block-time">'+b.horario+'</div><span class="abadge '+(b.estado==='activo'?'blue':'amber')+'">'+b.estado+'</span></div>'
-        +'<div class="block-day">'+b.dia+' · Cap. '+b.capacidad+'</div>'
-        +(b.mensaje?'<div style="font-size:11px;color:var(--amber);margin-bottom:6px">⚠️ '+b.mensaje+'</div>':'')
+        +'<div class="block-time">'+esc(b.horario)+'</div><span class="abadge '+(b.estado==='activo'?'blue':'amber')+'">'+esc(b.estado)+'</span></div>'
+        +'<div class="block-day">'+esc(b.dia)+' · Cap. '+esc(b.capacidad)+'</div>'
+        +(b.mensaje?'<div style="font-size:11px;color:var(--amber);margin-bottom:6px">⚠️ '+esc(b.mensaje)+'</div>':'')
         +'<div class="block-bar-bg"><div class="block-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
-        +'<div class="block-foot"><span class="block-slots">'+b.inscritos+'/'+b.capacidad+' · '+pct+'%</span>'
+        +'<div class="block-foot"><span class="block-slots">'+esc(b.inscritos)+'/'+esc(b.capacidad)+' · '+pct+'%</span>'
         +'<div class="block-actions">'
         +'<button class="icon-btn edit" onclick="openEditBlock('+b.id+')" title="Editar">✏️</button>'
         +'<button class="icon-btn suspend" onclick="toggleBlockStatus('+b.id+')" title="'+(b.estado==='activo'?'Suspender':'Activar')+'">'+(b.estado==='activo'?'⏸':'▶️')+'</button>'

@@ -1,8 +1,19 @@
 // ══ HELPERS REUTILIZABLES ══
 
+// Escapa texto para insertarlo en innerHTML o en atributos HTML (& < > " ')
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Retorna las 2 primeras iniciales de un nombre completo en mayúsculas
 function getInitials(name) {
-  return name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
+  return String(name || '').split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
 }
 
 // Retorna el color de fondo del avatar según el ID del cliente

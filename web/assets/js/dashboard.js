@@ -37,7 +37,7 @@ async function renderDashboard(){
     var alertsHtml=d.alertas.map(function(a){
       var cls=a.tipo==='warning'?'warn':a.tipo==='info'?'info':'success';
       var ico=a.tipo==='warning'?'⚠️':a.tipo==='info'?'ℹ️':'✅';
-      return '<div class="aalert '+cls+'"><span>'+ico+'</span><span>'+a.mensaje+'</span></div>';
+      return '<div class="aalert '+cls+'"><span>'+ico+'</span><span>'+esc(a.mensaje)+'</span></div>';
     }).join('');
     if(!alertsHtml)alertsHtml='<div class="aalert success"><span>✅</span><span>Todo en orden. Sin alertas activas.</span></div>';
     document.getElementById('alertas').innerHTML=alertsHtml;
@@ -46,7 +46,7 @@ async function renderDashboard(){
     var act=d.actividad_reciente;
     document.getElementById('recentRes').innerHTML=act.length
       ? act.map(function(r){
-          return '<tr><td class="primary">'+r.cliente+'</td><td>'+r.horario+'</td><td>'+r.dia+'</td>'
+          return '<tr><td class="primary">'+esc(r.cliente)+'</td><td>'+esc(r.horario)+'</td><td>'+esc(r.dia)+'</td>'
             +'<td><span class="abadge '+(r.asistio?'green':'blue')+'">'+(r.asistio?'Asistió':'Reservado')+'</span></td></tr>';
         }).join('')
       : '<tr><td colspan="4" style="color:var(--amuted2);padding:1rem">Sin actividad reciente.</td></tr>';

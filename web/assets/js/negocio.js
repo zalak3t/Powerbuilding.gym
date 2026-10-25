@@ -23,7 +23,7 @@ async function renderNegocio(){
     var maxPct=ranked.length>0?ranked[0].pct:100;
     document.getElementById('rankingList').innerHTML=ranked.slice(0,8).map(function(r,i){
       var color=i===0?'var(--gren)':i>=ranked.length-2?'var(--red)':'var(--blue)';
-      return '<div class="rank-item"><div class="rank-top"><span class="rank-name">'+r.label+'</span><span class="rank-val">'+r.pct+'%</span></div>'
+      return '<div class="rank-item"><div class="rank-top"><span class="rank-name">'+esc(r.label)+'</span><span class="rank-val">'+esc(r.pct)+'%</span></div>'
         +'<div class="rank-bg"><div class="rank-fill" style="width:'+Math.round(r.pct/maxPct*100)+'%;background:'+color+'"></div></div></div>';
     }).join('');
 
@@ -44,7 +44,7 @@ async function renderNegocio(){
       :riesgo.map(function(c){
           var diasLabel=c.dias_sin_visita===999?'Sin visita registrada':'Hace '+c.dias_sin_visita+' días';
           var tel=(c.telefono||'').replace(/\D/g,'');
-          return '<tr><td class="primary">'+c.nombre+'</td><td><span class="abadge red">'+diasLabel+'</span></td><td>'+c.reservas+'</td>'
+          return '<tr><td class="primary">'+esc(c.nombre)+'</td><td><span class="abadge red">'+esc(diasLabel)+'</span></td><td>'+esc(c.reservas)+'</td>'
             +'<td>'+(tel?'<a href="https://wa.me/'+tel+'" target="_blank" class="abtn success" style="text-decoration:none;font-size:11px;padding:5px 10px">💬 Contactar</a>':'-')+'</td></tr>';
         }).join('');
 
