@@ -597,3 +597,47 @@ footer em{color:var(--pink);font-style:normal}
 img, iframe, canvas {
   max-width: 100%;
 }
+
+/* ── ADMIN MÓVIL (bloque-1, 1.5): altura real, tacto y tablas; no afecta escritorio ── */
+@media (max-width: 768px) {
+  #adminApp, .sidebar, .amain {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .nav-item {
+    padding: 12px;
+  }
+  .abtn {
+    min-height: 36px;
+  }
+  .ci-btn {
+    min-height: 36px;
+    padding: 7px 12px;
+  }
+  /* 16px evita el zoom automático de iOS al enfocar campos */
+  .mfield input, .mfield select, .mfield textarea, .search-bar input {
+    font-size: 16px;
+  }
+  .tcard-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ci-row {
+    flex-wrap: wrap;
+  }
+  .amodal-footer .abtn {
+    flex: 1;
+  }
+}
+@media (max-width: 480px) {
+  .atbl th, .atbl td {
+    padding: 8px 10px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .amodal {
+    padding: 1rem;
+  }
+}
