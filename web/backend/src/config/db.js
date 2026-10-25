@@ -1,15 +1,18 @@
 const { Pool } = require('pg');
+const { getDbHost, isLocalHost } = require('./dbHost');
 
 if (!process.env.DATABASE_URL) {
   console.warn('[db] DATABASE_URL no configurado — la base de datos no estará disponible');
 }
 
+// SSL: se desactiva solo si la BD está en localhost; si no se puede leer el host,
+// se mantiene el criterio anterior (SSL únicamente con NODE_ENV=production).
+const dbHost = getDbHost();
+const useSsl = dbHost ? !isLocalHost(dbHost) : process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Railway requiere SSL en producción; en desarrollo local (sin SSL) se desactiva
-  ssl: process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('error', (err) => {
