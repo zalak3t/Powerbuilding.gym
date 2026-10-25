@@ -1,4 +1,6 @@
-require('dotenv').config();
+// En modo local (PB_LOCAL=1, via `npm run dev:local`) las variables vienen solo de .env.dev;
+// nunca se carga .env para no mezclar valores de produccion.
+if (!process.env.PB_LOCAL) require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
