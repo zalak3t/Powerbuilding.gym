@@ -343,6 +343,10 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
       <span class="nav-label">Plantillas</span>
     </button>
+    <button class="nav-item" id="nav-reportes" onclick="goTo('reportes')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+      <span class="nav-label">Reportes</span>
+    </button>
     <a class="nav-item" href="/admin/" style="text-decoration:none">
       <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
       <span class="nav-label">App móvil</span>
@@ -519,6 +523,36 @@
         </div>
       </div>
 
+      <!-- REPORTES -->
+      <div class="apage" id="apage-reportes">
+        <div style="margin-bottom:1rem">
+          <div style="font-size:15px;font-weight:700;color:var(--atext)">Reportes</div>
+          <div style="font-size:12px;color:var(--amuted2);margin-top:2px">Descarga en PDF o Excel para el rango de fechas elegido (máximo 366 días).</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:.5rem">
+          <div class="mfield" style="flex:1 1 130px;margin-bottom:.5rem"><label>Desde</label><input type="date" id="repDesde"/></div>
+          <div class="mfield" style="flex:1 1 130px;margin-bottom:.5rem"><label>Hasta</label><input type="date" id="repHasta"/></div>
+          <div style="margin-bottom:.5rem"><button class="abtn ghost" onclick="setRangoMesActual()">Mes actual</button></div>
+        </div>
+        <div id="repEstado" style="font-size:12px;color:var(--amuted2);min-height:18px;margin-bottom:.5rem"></div>
+        <div class="tcard" style="padding:1rem;margin-bottom:1rem">
+          <div style="font-size:14px;font-weight:700;color:var(--atext)">Asistencia</div>
+          <div style="font-size:12px;color:var(--amuted2);margin:2px 0 10px">Asistencias por fecha, con resumen por alumno y por bloque.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="abtn primary rep-btn" onclick="descargarReporte('asistencia','pdf')">Descargar PDF</button>
+            <button class="abtn ghost rep-btn" onclick="descargarReporte('asistencia','xlsx')">Descargar Excel</button>
+          </div>
+        </div>
+        <div class="tcard" style="padding:1rem">
+          <div style="font-size:14px;font-weight:700;color:var(--atext)">Ocupación e ingresos</div>
+          <div style="font-size:12px;color:var(--amuted2);margin:2px 0 10px">Ocupación por bloque e ingresos por plan y método (pagos no anulados).</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="abtn primary rep-btn" onclick="descargarReporte('ocupacion-ingresos','pdf')">Descargar PDF</button>
+            <button class="abtn ghost rep-btn" onclick="descargarReporte('ocupacion-ingresos','xlsx')">Descargar Excel</button>
+          </div>
+        </div>
+      </div>
+
       <!-- PLANTILLAS -->
       <div class="apage" id="apage-plantillas">
         <div style="margin-bottom:1rem">
@@ -558,6 +592,7 @@
 <script src="assets/js/planes.js"></script>
 <script src="assets/js/pagos.js"></script>
 <script src="assets/js/plantillas.js"></script>
+<script src="assets/js/reportes.js"></script>
 <script src="assets/js/asistencia.js"></script>
 <script src="assets/js/negocio.js"></script>
 <script src="assets/js/admin-core.js"></script>
