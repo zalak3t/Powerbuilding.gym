@@ -23,6 +23,7 @@ Se aplican **a mano** por el responsable del proyecto. No se ejecutan desde el c
 | Archivo | Contenido |
 |---|---|
 | `001_disciplinas_instructores.sql` | Tablas `disciplinas` (con 3 filas iniciales) e `instructores`; columnas opcionales `bloques.disciplina_id` e `instructor_id`. Solo agrega. |
+| `002_planes_pagos_plantillas.sql` | Tablas `planes`, `pagos` (FK a `clientes` y `planes`) y `plantillas_notificacion` (con 3 plantillas iniciales). Sin planes ni precios de ejemplo. Solo agrega. |
 
 Compatibles con PostgreSQL 9.6 o superior (sin identity columns ni sintaxis exclusiva de versiones recientes).
 
