@@ -257,6 +257,23 @@ $('installBoxLogin').addEventListener('click', onInstallClick);
 $('installBoxHoy').addEventListener('click', onInstallClick);
 renderInstall();
 
+// ══ SIN CONEXIÓN + SERVICE WORKER ══
+function updateOnline() {
+  $('offlineBar').hidden = !isOffline();
+  applyButtonsState();
+}
+window.addEventListener('online', function () { updateOnline(); if (!$('viewHoy').hidden) loadHoy(); });
+window.addEventListener('offline', updateOnline);
+updateOnline();
+
+// Solo en https o localhost
+if ('serviceWorker' in navigator
+    && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(function () {});
+  });
+}
+
 // ══ INIT ══
 $('loginForm').addEventListener('submit', doLogin);
 $('btnLogout').addEventListener('click', doLogout);
