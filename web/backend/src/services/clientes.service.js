@@ -1,4 +1,24 @@
 const { query } = require('../config/db');
+const { HOY_CL_SQL } = require('../utils/fechas');
+const { getPagosByCliente } = require('./pagos.service');
+
+// Membresía derivada: vence el MAX(periodo_hasta) de los pagos no anulados (fecha de Chile).
+// por_vencer = faltan 7 días o menos (vence_el - hoy <= 7); vigente incluye el día del vencimiento.
+const MEMBRESIA_JOIN = `
+    LEFT JOIN LATERAL (
+      SELECT MAX(p.periodo_hasta) AS vence
+      FROM pagos p
+      WHERE p.cliente_id = c.id AND p.estado = 'pagado'
+    ) m ON TRUE`;
+
+const MEMBRESIA_COLS = `
+      to_char(m.vence, 'YYYY-MM-DD') AS vence_el,
+      CASE
+        WHEN m.vence IS NULL                  THEN 'sin_plan'
+        WHEN m.vence < ${HOY_CL_SQL}          THEN 'vencida'
+        WHEN m.vence - ${HOY_CL_SQL} <= 7     THEN 'por_vencer'
+        ELSE 'vigente'
+      END AS estado_membresia`;
 
 async function getClientes({ search } = {}) {
   const params = [];
@@ -14,12 +34,14 @@ async function getClientes({ search } = {}) {
       c.notas, c.estado, c.fecha_ingreso, c.ultima_visita,
       c.creado_en, c.actualizado_en,
       COUNT(DISTINCT r.id)::int  AS reservas,
-      COUNT(DISTINCT a.id)::int  AS asistencias
+      COUNT(DISTINCT a.id)::int  AS asistencias,
+      ${MEMBRESIA_COLS}
     FROM clientes c
     LEFT JOIN reservas   r ON r.cliente_id  = c.id
     LEFT JOIN asistencias a ON a.reserva_id = r.id
+    ${MEMBRESIA_JOIN}
     ${where}
-    GROUP BY c.id
+    GROUP BY c.id, m.vence
     ORDER BY c.nombre ASC
   `;
   const result = await query(sql, params);
@@ -32,12 +54,14 @@ async function getClienteById(id) {
             c.notas, c.estado, c.fecha_ingreso, c.ultima_visita,
             c.creado_en, c.actualizado_en,
             COUNT(DISTINCT r.id)::int  AS reservas,
-            COUNT(DISTINCT a.id)::int  AS asistencias
+            COUNT(DISTINCT a.id)::int  AS asistencias,
+            ${MEMBRESIA_COLS}
      FROM clientes c
      LEFT JOIN reservas   r ON r.cliente_id  = c.id
      LEFT JOIN asistencias a ON a.reserva_id = r.id
+     ${MEMBRESIA_JOIN}
      WHERE c.id = $1
-     GROUP BY c.id`,
+     GROUP BY c.id, m.vence`,
     [id]
   );
   return result.rows[0] || null;
@@ -65,7 +89,9 @@ async function getClienteFicha(id) {
     [id]
   );
 
-  return { ...cliente, bloques_reservados: bloques.rows };
+  const pagos = await getPagosByCliente(id);
+
+  return { ...cliente, bloques_reservados: bloques.rows, pagos };
 }
 
 async function createCliente({ nombre, email, telefono, notas, estado }) {
