@@ -10,6 +10,11 @@ async function getPlantillaById(id) {
   return result.rows[0] || null;
 }
 
+async function getPlantillaByClave(clave) {
+  const result = await query('SELECT * FROM plantillas_notificacion WHERE clave = $1', [clave]);
+  return result.rows[0] || null;
+}
+
 // Solo asunto, cuerpo y activo son editables (clave y nombre son fijos). activo null => no cambia.
 async function updatePlantilla(id, { asunto, cuerpo, activo }) {
   const result = await query(
@@ -21,4 +26,4 @@ async function updatePlantilla(id, { asunto, cuerpo, activo }) {
   return result.rows[0] || null;
 }
 
-module.exports = { getPlantillas, getPlantillaById, updatePlantilla };
+module.exports = { getPlantillas, getPlantillaById, getPlantillaByClave, updatePlantilla };
