@@ -4,18 +4,6 @@ const {
 } = require('../services/planes.service');
 const v = require('../utils/validate');
 
-const MAX_INT = 2147483647; // INTEGER de PostgreSQL
-
-// Entero >= 0 (número entero o string de solo dígitos). Devuelve el entero o null.
-function parseEnteroNoNegativo(val) {
-  if (typeof val === 'number') return Number.isInteger(val) && val >= 0 && val <= MAX_INT ? val : null;
-  if (typeof val === 'string' && /^\d{1,10}$/.test(val.trim())) {
-    const n = parseInt(val.trim(), 10);
-    return n <= MAX_INT ? n : null;
-  }
-  return null;
-}
-
 // Valida el cuerpo de crear/editar plan. Devuelve { error } o los campos normalizados.
 function validarPlanBody(body) {
   const { nombre, descripcion, beneficios, duracion_dias, precio } = body || {};
@@ -23,9 +11,9 @@ function validarPlanBody(body) {
   if (!v.maxLen(nombre.trim(), 80)) return { error: 'El nombre no puede superar 80 caracteres' };
   if (!v.isOptionalString(descripcion, 500)) return { error: 'La descripción no puede superar 500 caracteres' };
   if (!v.isOptionalString(beneficios, 1000)) return { error: 'Los beneficios no pueden superar 1000 caracteres' };
-  const dias = parseEnteroNoNegativo(duracion_dias);
+  const dias = v.parseNonNegativeInt(duracion_dias);
   if (!dias) return { error: 'La duración debe ser un número entero de días mayor a 0' };
-  const pr = parseEnteroNoNegativo(precio);
+  const pr = v.parseNonNegativeInt(precio);
   if (pr === null) return { error: 'El precio debe ser un número entero en pesos, mayor o igual a 0' };
   return {
     nombre: nombre.trim(),
@@ -110,4 +98,4 @@ async function eliminarPlan(req, res) {
   return res.json({ ok: true, message: 'Plan eliminado correctamente' });
 }
 
-module.exports = { listarPlanes, crearPlan, editarPlan, cambiarEstadoPlan, eliminarPlan, parseEnteroNoNegativo };
+module.exports = { listarPlanes, crearPlan, editarPlan, cambiarEstadoPlan, eliminarPlan };
