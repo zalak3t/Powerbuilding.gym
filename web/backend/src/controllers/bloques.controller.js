@@ -3,6 +3,7 @@ const {
   getAdminBloques, getBloqueById, getInscritosByBloqueId,
   createBloque, updateBloque, updateBloqueEstado, deleteBloque,
 } = require('../services/bloques.service');
+const v = require('../utils/validate');
 
 const VALID_DAYS   = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const VALID_ESTADO = ['activo', 'suspendido'];
@@ -10,9 +11,30 @@ const VALID_ESTADO = ['activo', 'suspendido'];
 function isValidDay(dia)    { return VALID_DAYS.includes(dia); }
 function isValidEstado(est) { return VALID_ESTADO.includes(est); }
 
+// Valida el cuerpo de crear/editar bloque. Devuelve { error } o los campos normalizados.
+function validarBloqueBody(body) {
+  const { dia, horario, capacidad, estado, mensaje } = body || {};
+  if (!dia || !v.isNonEmptyString(horario) || capacidad === undefined) {
+    return { error: 'dia, horario y capacidad son obligatorios' };
+  }
+  if (typeof dia !== 'string' || !isValidDay(dia)) return { error: 'Día inválido' };
+  if (!v.maxLen(horario.trim(), 30)) return { error: 'El horario no puede superar 30 caracteres' };
+  const cap = v.parsePositiveInt(capacidad);
+  if (!cap || cap > 200) return { error: 'capacidad debe ser un número entero entre 1 y 200' };
+  const est = estado || 'activo';
+  if (typeof est !== 'string' || !isValidEstado(est)) {
+    return { error: 'estado debe ser "activo" o "suspendido"' };
+  }
+  if (!v.isOptionalString(mensaje, 200)) return { error: 'El mensaje no puede superar 200 caracteres' };
+  return { dia, horario: horario.trim(), cap, est, mensaje };
+}
+
 // ── Público ───────────────────────────────────────────────────────────────────
 async function listarBloques(req, res) {
   const { dia } = req.query;
+  if (dia !== undefined && !(typeof dia === 'string' && isValidDay(dia))) {
+    return res.status(400).json({ ok: false, error: 'Día inválido' });
+  }
   let userId = null;
   if (req.user) {
     const cliente = await getClienteByUserId(req.user.id);
@@ -25,28 +47,18 @@ async function listarBloques(req, res) {
 // ── Admin: GET /api/bloques/admin ─────────────────────────────────────────────
 async function listarBloquesAdmin(req, res) {
   const { dia } = req.query;
+  if (dia !== undefined && !(typeof dia === 'string' && isValidDay(dia))) {
+    return res.status(400).json({ ok: false, error: 'Día inválido' });
+  }
   const bloques = await getAdminBloques({ dia: dia || null });
   return res.json({ ok: true, bloques });
 }
 
 // ── Admin: POST /api/bloques ──────────────────────────────────────────────────
 async function crearBloque(req, res) {
-  const { dia, horario, capacidad, estado, mensaje } = req.body;
-
-  if (!dia || !horario || capacidad === undefined) {
-    return res.status(400).json({ ok: false, error: 'dia, horario y capacidad son obligatorios' });
-  }
-  if (!isValidDay(dia)) {
-    return res.status(400).json({ ok: false, error: 'Día inválido' });
-  }
-  const cap = parseInt(capacidad, 10);
-  if (isNaN(cap) || cap <= 0) {
-    return res.status(400).json({ ok: false, error: 'capacidad debe ser un número mayor a 0' });
-  }
-  const est = estado || 'activo';
-  if (!isValidEstado(est)) {
-    return res.status(400).json({ ok: false, error: 'estado debe ser "activo" o "suspendido"' });
-  }
+  const val = validarBloqueBody(req.body);
+  if (val.error) return res.status(400).json({ ok: false, error: val.error });
+  const { dia, horario, cap, est, mensaje } = val;
 
   try {
     const bloque = await createBloque({ dia, horario, capacidad: cap, estado: est, mensaje: mensaje || '' });
@@ -61,25 +73,12 @@ async function crearBloque(req, res) {
 
 // ── Admin: PUT /api/bloques/:id ───────────────────────────────────────────────
 async function editarBloque(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = v.parsePositiveInt(req.params.id);
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
 
-  const { dia, horario, capacidad, estado, mensaje } = req.body;
-
-  if (!dia || !horario || capacidad === undefined) {
-    return res.status(400).json({ ok: false, error: 'dia, horario y capacidad son obligatorios' });
-  }
-  if (!isValidDay(dia)) {
-    return res.status(400).json({ ok: false, error: 'Día inválido' });
-  }
-  const cap = parseInt(capacidad, 10);
-  if (isNaN(cap) || cap <= 0) {
-    return res.status(400).json({ ok: false, error: 'capacidad debe ser un número mayor a 0' });
-  }
-  const est = estado || 'activo';
-  if (!isValidEstado(est)) {
-    return res.status(400).json({ ok: false, error: 'estado debe ser "activo" o "suspendido"' });
-  }
+  const val = validarBloqueBody(req.body);
+  if (val.error) return res.status(400).json({ ok: false, error: val.error });
+  const { dia, horario, cap, est, mensaje } = val;
 
   const bloque = await getBloqueById(id);
   if (!bloque) return res.status(404).json({ ok: false, error: 'Bloque no encontrado' });
@@ -108,12 +107,15 @@ async function editarBloque(req, res) {
 
 // ── Admin: PATCH /api/bloques/:id/estado ──────────────────────────────────────
 async function cambiarEstado(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = v.parsePositiveInt(req.params.id);
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
 
-  const { estado, mensaje } = req.body;
-  if (!estado || !isValidEstado(estado)) {
+  const { estado, mensaje } = req.body || {};
+  if (typeof estado !== 'string' || !isValidEstado(estado)) {
     return res.status(400).json({ ok: false, error: 'estado debe ser "activo" o "suspendido"' });
+  }
+  if (!v.isOptionalString(mensaje, 200)) {
+    return res.status(400).json({ ok: false, error: 'El mensaje no puede superar 200 caracteres' });
   }
 
   const bloque = await getBloqueById(id);
@@ -127,7 +129,7 @@ async function cambiarEstado(req, res) {
 
 // ── Admin: DELETE /api/bloques/:id ────────────────────────────────────────────
 async function eliminarBloque(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = v.parsePositiveInt(req.params.id);
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
 
   const deleted = await deleteBloque(id);

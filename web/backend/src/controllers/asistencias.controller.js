@@ -7,12 +7,13 @@ const {
   getAsistenciaById,
   deleteAsistencia,
 } = require('../services/asistencias.service');
+const v = require('../utils/validate');
 
 // GET /api/asistencias?dia=Lunes
 async function listarAsistencias(req, res) {
-  const dia = req.query.dia || 'Lunes';
+  const dia = req.query.dia === undefined ? 'Lunes' : req.query.dia;
 
-  if (!VALID_DAYS.includes(dia)) {
+  if (typeof dia !== 'string' || !VALID_DAYS.includes(dia)) {
     return res.status(400).json({ ok: false, error: 'Día inválido' });
   }
 
@@ -22,9 +23,9 @@ async function listarAsistencias(req, res) {
 
 // POST /api/asistencias
 async function marcarAsistencia(req, res) {
-  const { reserva_id } = req.body;
+  const reserva_id = v.parsePositiveInt((req.body || {}).reserva_id);
   if (!reserva_id) {
-    return res.status(400).json({ ok: false, error: 'reserva_id es obligatorio' });
+    return res.status(400).json({ ok: false, error: 'reserva_id es obligatorio y debe ser un entero positivo' });
   }
 
   const reserva = await getReservaById(reserva_id);
@@ -43,7 +44,7 @@ async function marcarAsistencia(req, res) {
 
 // DELETE /api/asistencias/:id
 async function desmarcarAsistencia(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = v.parsePositiveInt(req.params.id);
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
 
   const existing = await getAsistenciaById(id);

@@ -5,11 +5,12 @@ const {
   getReservaById,
   deleteReserva,
 } = require('../services/reservas.service');
+const v = require('../utils/validate');
 
 async function reservar(req, res) {
-  const { bloque_id } = req.body;
+  const bloque_id = v.parsePositiveInt((req.body || {}).bloque_id);
   if (!bloque_id) {
-    return res.status(400).json({ ok: false, error: 'bloque_id es obligatorio' });
+    return res.status(400).json({ ok: false, error: 'bloque_id es obligatorio y debe ser un entero positivo' });
   }
 
   // Verificar cliente asociado al usuario
@@ -46,7 +47,7 @@ async function reservar(req, res) {
 }
 
 async function cancelar(req, res) {
-  const reservaId = parseInt(req.params.id, 10);
+  const reservaId = v.parsePositiveInt(req.params.id);
   if (!reservaId) {
     return res.status(400).json({ ok: false, error: 'ID de reserva inválido' });
   }

@@ -19,7 +19,7 @@ async function doRegister(){
   var err=document.getElementById('rErr'),ok=document.getElementById('rOk');
   err.classList.remove('show'); ok.classList.remove('show');
   if(!name||!email||!pass){err.textContent='Completa todos los campos obligatorios';err.classList.add('show');return;}
-  if(pass.length<6){err.textContent='Mínimo 6 caracteres';err.classList.add('show');return;}
+  if(pass.length<8){err.textContent='Mínimo 8 caracteres';err.classList.add('show');return;}
   try {
     await apiRequest('/auth/register',{method:'POST',body:JSON.stringify({nombre:name,email:email,telefono:phone,password:pass})});
     ok.classList.add('show');
