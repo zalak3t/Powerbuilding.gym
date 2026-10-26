@@ -136,6 +136,13 @@ footer{background:var(--dark);border-top:1px solid rgba(255,255,255,.05);padding
 .footer-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:1rem}
 footer p{font-size:12px;color:rgba(255,255,255,.2);letter-spacing:.03em}
 footer em{color:var(--pink);font-style:normal}
+.legal-link{color:rgba(255,255,255,.45);text-decoration:underline}
+.legal-link:hover{color:var(--pink2)}
+.legal-note{font-size:12px;color:var(--muted);text-align:center;margin-top:.9rem;line-height:1.5}
+.legal-note a,.consent a{color:var(--pink2)}
+.admin-legal{text-align:left;color:var(--amuted2);margin:.2rem 0 .9rem}
+.consent{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.5;margin:.2rem 0 .6rem;cursor:pointer}
+.consent input{margin-top:3px;flex:0 0 auto;accent-color:var(--pink)}
 
 /* ═══════════════════════════════════
    ADMIN PANEL

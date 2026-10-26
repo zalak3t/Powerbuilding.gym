@@ -28,12 +28,14 @@
       <div class="field"><label>Contraseña</label><input type="password" id="lPass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <div class="ferr" id="lErr">Email o contraseña incorrectos</div>
       <button class="btn-grad" onclick="doLogin()">Entrar</button>
+      <p class="legal-note"><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a></p>
     </div>
     <div id="fReg" style="display:none">
       <div class="field"><label>Nombre completo</label><input type="text" id="rName" placeholder="Tu nombre"/></div>
       <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="tu@email.com"/></div>
       <div class="field"><label>Teléfono</label><input type="tel" id="rPhone" placeholder="+56 9 xxxx xxxx"/></div>
       <div class="field"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 8 caracteres"/></div>
+      <label class="consent"><input type="checkbox" id="rConsent"/><span>He leído y acepto la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a> y el tratamiento de mis datos personales.</span></label>
       <div class="ferr" id="rErr"></div>
       <div class="fok" id="rOk">¡Cuenta creada! Inicia sesión.</div>
       <button class="btn-grad" onclick="doRegister()">Crear cuenta</button>
@@ -50,6 +52,7 @@
     <div class="mfield"><label>Email</label><input type="email" id="cEmail"/></div>
     <div class="mfield"><label>Teléfono</label><input type="tel" id="cPhone"/></div>
     <div class="mfield"><label>Notas internas</label><textarea id="cNotes" placeholder="Lesión, preferencias, observaciones..."></textarea></div>
+    <p class="legal-note admin-legal">Informa al cliente sobre el tratamiento de sus datos (<a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>) y registra en las notas solo lo necesario.</p>
     <div class="mfield"><label>Estado</label><select id="cStatus"><option value="activo">Activo</option><option value="suspendido">Suspendido</option><option value="bloqueado">Bloqueado</option></select></div>
     <div class="amodal-footer">
       <button class="abtn ghost" onclick="closeAModal('modalClient')">Cancelar</button>
@@ -286,7 +289,8 @@
       <div class="logo-circle-sm">PB</div>
       <div class="logo-text"><span class="gt">Powerbuilding</span><small>.GYM</small></div>
     </div>
-    <p>© 2025 <em>Powerbuilding.gym</em> · Camilo Henríquez 3314, Santiago · Todos los derechos reservados</p>
+    <p>© 2026 <em>Powerbuilding.gym</em> · Camilo Henríquez 3314, Santiago · Todos los derechos reservados</p>
+    <p><a class="legal-link" href="privacidad.html">Política de privacidad</a></p>
   </footer>
 </div>
 

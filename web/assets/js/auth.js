@@ -9,6 +9,7 @@ function switchTab(tab){
   document.getElementById('lErr').classList.remove('show');
   document.getElementById('rErr').classList.remove('show');
   document.getElementById('rOk').classList.remove('show');
+  document.getElementById('rConsent').checked=false;
 }
 
 async function doRegister(){
@@ -20,6 +21,7 @@ async function doRegister(){
   err.classList.remove('show'); ok.classList.remove('show');
   if(!name||!email||!pass){err.textContent='Completa todos los campos obligatorios';err.classList.add('show');return;}
   if(pass.length<8){err.textContent='Mínimo 8 caracteres';err.classList.add('show');return;}
+  if(!document.getElementById('rConsent').checked){err.textContent='Debes aceptar la política de privacidad';err.classList.add('show');return;}
   try {
     await apiRequest('/auth/register',{method:'POST',body:JSON.stringify({nombre:name,email:email,telefono:phone,password:pass})});
     ok.classList.add('show');
