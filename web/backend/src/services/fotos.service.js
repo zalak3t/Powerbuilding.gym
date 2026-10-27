@@ -1,5 +1,5 @@
 const { query } = require('../config/db');
-const { inspeccionarJpeg } = require('../utils/jpeg');
+const { limpiarJpeg } = require('../utils/jpeg');
 
 // Límites sobre los bytes ya decodificados. El navegador entrega 256 px (foto) y 64 px (miniatura).
 const FOTO = { maxBytes: 48 * 1024, minLado: 64, maxLado: 256 };
@@ -7,20 +7,22 @@ const MINIATURA = { maxBytes: 6 * 1024, minLado: 16, maxLado: 96 };
 
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
-// Valida un base64 (sin prefijo data:) por su contenido real. Devuelve { buf } o { error }.
+// Valida un base64 (sin prefijo data:) por su contenido real y devuelve el JPEG ya limpio (sin EXIF ni otros
+// metadatos, sin bytes tras el EOI). Devuelve { buf } o { error }.
 function validarImagen(b64, limites, nombre) {
   if (typeof b64 !== 'string' || !b64) return { error: nombre + ' es obligatoria' };
   if (b64.length > Math.ceil(limites.maxBytes / 3) * 4 + 4) return { error: nombre + ' supera el tamaño máximo' };
   if (b64.length % 4 !== 0 || !BASE64_RE.test(b64)) return { error: nombre + ' no es base64 válido' };
   const buf = Buffer.from(b64, 'base64');
   if (buf.length > limites.maxBytes) return { error: nombre + ' supera el tamaño máximo' };
-  const info = inspeccionarJpeg(buf);
+  const info = limpiarJpeg(buf);
   if (!info.ok) return { error: nombre + ': ' + info.error };
   if (info.width !== info.height) return { error: nombre + ' debe ser cuadrada' };
   if (info.width < limites.minLado || info.width > limites.maxLado) {
     return { error: nombre + ' debe medir entre ' + limites.minLado + ' y ' + limites.maxLado + ' px por lado' };
   }
-  return { buf };
+  if (info.buffer.length > limites.maxBytes) return { error: nombre + ' supera el tamaño máximo' };
+  return { buf: info.buffer };
 }
 
 // Devuelve { error } o { foto: Buffer, miniatura: Buffer }.

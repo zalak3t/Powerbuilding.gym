@@ -33,15 +33,22 @@ const REAL64_B64 = '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQE
 const REAL64 = Buffer.from(REAL64_B64, 'base64');
 
 // JPEG sintetico estructuralmente valido (el servidor valida estructura y dimensiones, no decodifica pixeles)
-function mkJpeg(w, h, { exif = false, com = false, pad = 0, sinEoi = false } = {}) {
+// exif/com/app13: metadatos que el servidor debe quitar; icc/adobe: segmentos que debe conservar (APP2/APP14);
+// comTrasSos: comentario despues de los datos comprimidos; basura: bytes despues del EOI.
+function mkJpeg(w, h, { exif = false, com = false, app13 = false, icc = false, adobe = false, comTrasSos = false, basura = false, pad = 0, sinEoi = false } = {}) {
   const p = [Buffer.from([0xff, 0xd8])];
   p.push(Buffer.from([0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]));
   if (exif) p.push(Buffer.from([0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00]));
+  if (icc) p.push(Buffer.from([0xff, 0xe2, 0x00, 0x06, 0x49, 0x43, 0x43, 0x5f]));
+  if (app13) p.push(Buffer.from([0xff, 0xed, 0x00, 0x06, 0x50, 0x68, 0x6f, 0x74]));
+  if (adobe) p.push(Buffer.from([0xff, 0xee, 0x00, 0x06, 0x41, 0x64, 0x6f, 0x62]));
   if (com) p.push(Buffer.from([0xff, 0xfe, 0x00, 0x04, 0x68, 0x69]));
   p.push(Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01]));
   p.push(Buffer.from([0xff, 0xda, 0x00, 0x0c, 0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00]));
   p.push(Buffer.alloc(40 + pad, 0x55));
+  if (comTrasSos) p.push(Buffer.from([0xff, 0xfe, 0x00, 0x04, 0x68, 0x69]));
   if (!sinEoi) p.push(Buffer.from([0xff, 0xd9]));
+  if (basura) p.push(Buffer.from('<script>alert(1)</script>'));
   return Buffer.concat(p);
 }
 const b64 = (b) => b.toString('base64');
@@ -250,8 +257,6 @@ async function main() {
     await mal('PNG', { foto: b64(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0, 0, 0, 0])), miniatura: REAL64_B64 });
     await mal('SVG declarado como imagen', { foto: b64(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>')), miniatura: REAL64_B64 });
     await mal('HTML', { foto: b64(Buffer.from('<html><script>alert(1)</script></html>')), miniatura: REAL64_B64 });
-    await mal('JPEG con EXIF', { foto: b64(mkJpeg(64, 64, { exif: true })), miniatura: REAL64_B64 });
-    await mal('JPEG con comentario incrustado', { foto: b64(mkJpeg(64, 64, { com: true })), miniatura: REAL64_B64 });
     await mal('JPEG truncado (sin EOI)', { foto: b64(mkJpeg(64, 64, { sinEoi: true })), miniatura: REAL64_B64 });
     await mal('no cuadrada (64x32)', { foto: b64(mkJpeg(64, 32)), miniatura: REAL64_B64 });
     await mal('mas de 256 px por lado', { foto: b64(mkJpeg(300, 300)), miniatura: REAL64_B64 });
@@ -266,6 +271,41 @@ async function main() {
     await mal('tipos incorrectos', { foto: 123, miniatura: ['x'] });
     const fotoAun = await q1('SELECT octet_length(foto) AS n FROM clientes_foto WHERE cliente_id = $1', [A.clienteId]);
     ok(fotoAun && fotoAun.n === REAL64.length, 'tras los rechazos, la foto guardada no cambio');
+
+    // ── Limpieza de metadatos: se aceptan y se guardan sin EXIF, comentarios ni bytes sobrantes ──
+    const jpg = require('../src/utils/jpeg');
+    const limpio = mkJpeg(64, 64);
+    let u = jpg.limpiarJpeg(REAL64);
+    ok(u.ok && u.buffer.equals(REAL64) && u.quitados === 0 && u.sobrantes === 0, 'limpiarJpeg: un JPEG real sin metadatos sale identico');
+    u = jpg.limpiarJpeg(mkJpeg(64, 64, { exif: true, com: true, app13: true }));
+    ok(u.ok && u.quitados === 3 && u.buffer.equals(limpio) && u.width === 64 && u.height === 64, 'limpiarJpeg: quita APP1, APP13 y COM y el resultado es el JPEG limpio');
+    ok(jpg.limpiarJpeg(u.buffer).quitados === 0, 'limpiarJpeg: es idempotente (limpiar lo ya limpio no quita nada)');
+    u = jpg.limpiarJpeg(mkJpeg(64, 64, { comTrasSos: true }));
+    ok(u.ok && u.quitados === 1 && u.buffer.equals(limpio), 'limpiarJpeg: quita un comentario que viene despues de los datos comprimidos');
+    u = jpg.limpiarJpeg(mkJpeg(64, 64, { basura: true }));
+    ok(u.ok && u.sobrantes === 25 && u.buffer.equals(limpio), 'limpiarJpeg: descarta los bytes que vienen despues del EOI');
+    u = jpg.limpiarJpeg(mkJpeg(64, 64, { icc: true, adobe: true, exif: true }));
+    ok(u.ok && u.quitados === 1 && u.buffer.equals(mkJpeg(64, 64, { icc: true, adobe: true })), 'limpiarJpeg: conserva APP2 (perfil de color) y APP14 (Adobe)');
+    ok(!jpg.limpiarJpeg(mkJpeg(64, 64, { sinEoi: true })).ok && !jpg.limpiarJpeg(Buffer.from('no soy jpeg')).ok, 'limpiarJpeg: rechaza JPEG sin EOI y contenido que no es JPEG');
+
+    const subeYLee = async (nombre, fotoBuf, miniBuf, esperada) => {
+      const x = await put(A, { foto: b64(fotoBuf), miniatura: b64(miniBuf) });
+      const g = await http('GET', '/api/mi-cuenta/foto', { token: A.token });
+      ok(x.status === 200 && g.status === 200 && g.buf.equals(esperada), 'foto aceptada y guardada limpia: ' + nombre);
+      ok(g.buf.indexOf(Buffer.from([0xff, 0xe1])) < 0 && g.buf.indexOf(Buffer.from([0xff, 0xfe])) < 0 && g.buf.indexOf(Buffer.from('<script>')) < 0, '  -> la foto guardada no contiene APP1, COM ni bytes sobrantes: ' + nombre);
+    };
+    await subeYLee('con EXIF', mkJpeg(64, 64, { exif: true }), REAL64, limpio);
+    await subeYLee('con comentario', mkJpeg(64, 64, { com: true }), REAL64, limpio);
+    await subeYLee('con EXIF, APP13 y comentario juntos', mkJpeg(64, 64, { exif: true, app13: true, com: true }), REAL64, limpio);
+    await subeYLee('con comentario tras los datos comprimidos', mkJpeg(64, 64, { comTrasSos: true }), REAL64, limpio);
+    await subeYLee('con bytes despues del EOI', mkJpeg(64, 64, { basura: true }), REAL64, limpio);
+    await subeYLee('conserva el perfil de color (APP2)', mkJpeg(64, 64, { icc: true, exif: true }), REAL64, mkJpeg(64, 64, { icc: true }));
+    r = await put(A, { foto: REAL64_B64, miniatura: b64(mkJpeg(64, 64, { exif: true, com: true })) });
+    const av = await http('GET', '/api/avatares?ids=' + A.clienteId, { token: tokAdmin });
+    const miniGuardada = av.data && av.data.avatares[A.clienteId] ? Buffer.from(av.data.avatares[A.clienteId].split(',')[1], 'base64') : null;
+    ok(r.status === 200 && miniGuardada && miniGuardada.equals(limpio), 'miniatura con EXIF y comentario: se acepta y se guarda limpia');
+    r = await put(A, { foto: REAL64_B64, miniatura: REAL64_B64 });
+    ok(r.status === 200, 'se restaura la foto real de A para las pruebas siguientes');
 
     // Avatares (admin)
     r = await put(B, { foto: REAL64_B64, miniatura: REAL64_B64 });
