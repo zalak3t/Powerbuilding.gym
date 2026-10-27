@@ -17,10 +17,8 @@ async function renderClients(filter){
       return;
     }
     document.getElementById('clientTable').innerHTML=adminClientsCache.map(function(c){
-      var ini=getInitials(c.nombre);
-      var bg=getAvatarColor(c.id);
       var statusBadge=getClientStatusClass(c);
-      return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+bg+'">'+esc(ini)+'</div><span style="color:var(--atext);font-weight:500">'+esc(c.nombre)+'</span></div></td>'
+      return '<tr><td><div style="display:flex;align-items:center;gap:8px">'+avatarHtml(c.id,c.nombre,30,11)+'<span style="color:var(--atext);font-weight:500">'+esc(c.nombre)+'</span></div></td>'
         +'<td>'+esc(c.email)+'</td><td>'+(esc(c.telefono)||'—')+'</td>'
         +'<td><span class="abadge blue">'+esc(c.reservas)+'</span></td>'
         +'<td><span class="abadge green">'+esc(c.asistencias)+'</span></td>'
@@ -33,6 +31,7 @@ async function renderClients(filter){
         +'<button class="abtn danger" style="font-size:11px;padding:5px 10px;background:rgba(239,68,68,.2)" onclick="deleteClient('+c.id+')">Eliminar</button>'
         +'</div></td></tr>';
     }).join('');
+    hidratarAvatares(document.getElementById('clientTable'));
   } catch(e) {
     document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--red);padding:1rem">Error al cargar clientes.</td></tr>';
     adminToast(e.message||'Error al cargar clientes','err');
@@ -113,13 +112,11 @@ async function openFicha(id){
   try {
     var data=await apiRequest('/clientes/'+id);
     var cliente=data.cliente;
-    var ini=getInitials(cliente.nombre);
-    var bg=getAvatarColor(cliente.id);
     var attPct=cliente.reservas>0?Math.round(cliente.asistencias/cliente.reservas*100):0;
     var statusBadge=getClientStatusClass(cliente);
     var bloques=cliente.bloques_reservados||[];
     var html='<div style="display:flex;align-items:center;gap:14px;margin-bottom:1.5rem">'
-      +'<div class="av" style="width:52px;height:52px;background:'+bg+';font-size:18px">'+esc(ini)+'</div>'
+      +avatarHtml(cliente.id,cliente.nombre,52,18)
       +'<div><div style="font-size:17px;font-weight:700;color:var(--atext)">'+esc(cliente.nombre)+'</div>'
       +'<div style="font-size:12px;color:var(--amuted2);margin-top:2px">'+esc(cliente.email)+' · '+(esc(cliente.telefono)||'—')+'</div>'
       +'<span class="abadge '+statusBadge+'" style="margin-top:6px">'+esc(cliente.estado)+'</span></div></div>'
@@ -157,6 +154,7 @@ async function openFicha(id){
       +'<button class="abtn danger" style="background:rgba(239,68,68,.2)" onclick="closeAModal(\'modalFicha\');deleteClient('+cliente.id+')">Eliminar</button>'
       +'</div>';
     document.getElementById('fichaContent').innerHTML=html;
+    hidratarAvatares(document.getElementById('fichaContent'));
     openAModal('modalFicha');
   } catch(e) {
     adminToast(e.message||'Error al cargar ficha','err');

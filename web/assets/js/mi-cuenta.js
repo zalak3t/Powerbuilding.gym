@@ -1,6 +1,6 @@
 // ══ MI CUENTA (alumno) ══
 // Todas las llamadas usan /mi-cuenta/*: el servidor identifica al alumno por su token, nunca por un id.
-var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,chart:null,pagoHabilitado:false,pagando:false};
+var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,chart:null,pagoHabilitado:false,pagando:false,fotoUrl:null};
 var MC_EJERCICIOS=[
   {id:'sentadilla',nombre:'Sentadilla',min:20,max:600,color:'#3b82f6'},
   {id:'banca',nombre:'Banca',min:20,max:500,color:'#10b981'},
@@ -61,6 +61,7 @@ async function mcCargarPerfil(){
     mc.perfil=d.perfil;
     mcPintarPerfil();
     mcPintarMembresia();
+    if(mc.perfil.miniatura)mcCargarFotoGrande();
   }catch(e){
     if(e.message==='Sesión expirada')return;
     mcMostrarError('mcAlert',e.message||'No pudimos cargar tu perfil');
@@ -77,8 +78,10 @@ function mcPintarPerfil(){
   mcEl('mcEmail').value=p.email||'';
   mcEl('mcPerfilNombre').textContent=p.nombre||'';
   mcEl('mcPerfilEmail').textContent=p.email||'';
-  mcEl('mcPerfilAv').innerHTML=mcAvatarHtml(p.nombre,p.miniatura,72);
+  mcEl('mcPerfilAv').innerHTML=mcAvatarHtml(p.nombre,(p.miniatura&&mc.fotoUrl)||p.miniatura,72);
   mcEl('mcHeadAv').innerHTML=mcAvatarHtml(p.nombre,p.miniatura,34);
+  mcEl('mcFotoBtn').textContent=p.miniatura?'Cambiar foto':'Subir foto';
+  mcEl('mcFotoQuitar').style.display=p.miniatura?'':'none';
   mcEl('mcSalir').textContent=primero+' · Salir';
 }
 
@@ -98,6 +101,171 @@ async function mcGuardarPerfil(){
   }catch(e){
     if(e.message!=='Sesión expirada')mcMostrarError('mcPerfilErr',e.message||'No se pudo guardar');
   }finally{btn.disabled=false;}
+}
+
+// ── Foto de perfil ──
+// Un <img> no puede enviar el token: la foto grande se pide con fetch + Authorization y se muestra como blob.
+async function mcCargarFotoGrande(){
+  try{
+    var res=await fetch(API_BASE_URL+'/mi-cuenta/foto',{headers:authHeaders()});
+    if(res.status===401){handleSessionExpired();return;}
+    if(!res.ok)return;
+    var blob=await res.blob();
+    if(mc.fotoUrl)URL.revokeObjectURL(mc.fotoUrl);
+    mc.fotoUrl=URL.createObjectURL(blob);
+    if(mc.perfil&&mc.perfil.miniatura)mcPintarPerfil();
+  }catch(e){ /* se queda la miniatura */ }
+}
+
+var mcFoto={src:null,w:0,h:0,zoom:1,cx:0,cy:0,drag:null,subiendo:false};
+
+// Decodifica la imagen respetando la orientación EXIF (fotos de iPhone verticales)
+async function mcCargarImagen(file){
+  if(window.createImageBitmap){
+    try{
+      var bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+      return {src:bmp,w:bmp.width,h:bmp.height};
+    }catch(e){ /* navegador sin soporte de opciones: se usa <img> */ }
+  }
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file);
+    var img=new Image();
+    img.onload=function(){URL.revokeObjectURL(url);resolve({src:img,w:img.naturalWidth,h:img.naturalHeight});};
+    img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('decode'));};
+    img.src=url;
+  });
+}
+
+async function mcElegirFoto(input){
+  var f=input.files&&input.files[0];
+  input.value='';
+  mcLimpiarError('mcFotoErr');
+  if(!f)return;
+  if(f.size>25*1024*1024){mcMostrarError('mcFotoErr','La imagen es demasiado pesada (máximo 25 MB)');return;}
+  var img;
+  try{ img=await mcCargarImagen(f); }
+  catch(e){mcMostrarError('mcFotoErr','No pudimos leer esa imagen. Prueba con una foto en formato JPG o PNG.');return;}
+  if(Math.min(img.w,img.h)<128){mcMostrarError('mcFotoErr','La imagen es muy pequeña (mínimo 128 px por lado)');return;}
+  mcFoto.src=img.src;mcFoto.w=img.w;mcFoto.h=img.h;
+  mcFoto.zoom=1;mcFoto.cx=img.w/2;mcFoto.cy=img.h/2;mcFoto.drag=null;
+  mcEl('mcFotoZoom').value=1;
+  mcLimpiarError('mcFotoModalErr');
+  mcEl('mcFotoGuardar').disabled=false;mcEl('mcFotoGuardar').textContent='Guardar foto';
+  mcEl('mcFotoOverlay').classList.add('show');
+  mcFotoDibujar(mcEl('mcFotoCanvas'),256);
+}
+
+function mcCerrarFoto(){
+  if(mcFoto.subiendo)return;
+  mcEl('mcFotoOverlay').classList.remove('show');
+  if(mcFoto.src&&mcFoto.src.close)mcFoto.src.close();
+  mcFoto.src=null;
+}
+
+// Lado del recorte cuadrado en píxeles de la imagen original
+function mcFotoLado(){return Math.min(mcFoto.w,mcFoto.h)/mcFoto.zoom;}
+function mcFotoAcotar(){
+  var m=mcFotoLado()/2;
+  mcFoto.cx=Math.min(Math.max(mcFoto.cx,m),mcFoto.w-m);
+  mcFoto.cy=Math.min(Math.max(mcFoto.cy,m),mcFoto.h-m);
+}
+function mcFotoDibujar(canvas,px){
+  var l=mcFotoLado();
+  canvas.width=px;canvas.height=px;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,px,px); // JPEG no tiene transparencia
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(mcFoto.src,mcFoto.cx-l/2,mcFoto.cy-l/2,l,l,0,0,px,px);
+}
+function mcFotoZoomar(v){
+  mcFoto.zoom=parseFloat(v)||1;
+  mcFotoAcotar();
+  mcFotoDibujar(mcEl('mcFotoCanvas'),256);
+}
+
+// Arrastre del encuadre (ratón y táctil)
+(function(){
+  var cv=mcEl('mcFotoCanvas');
+  cv.addEventListener('pointerdown',function(e){
+    if(!mcFoto.src)return;
+    mcFoto.drag={x:e.clientX,y:e.clientY,cx:mcFoto.cx,cy:mcFoto.cy};
+    try{cv.setPointerCapture(e.pointerId);}catch(err){}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove',function(e){
+    if(!mcFoto.drag||!mcFoto.src)return;
+    var escala=mcFotoLado()/cv.getBoundingClientRect().width;
+    mcFoto.cx=mcFoto.drag.cx-(e.clientX-mcFoto.drag.x)*escala;
+    mcFoto.cy=mcFoto.drag.cy-(e.clientY-mcFoto.drag.y)*escala;
+    mcFotoAcotar();
+    mcFotoDibujar(cv,256);
+  });
+  function fin(){mcFoto.drag=null;}
+  cv.addEventListener('pointerup',fin);
+  cv.addEventListener('pointercancel',fin);
+})();
+
+// Exporta el canvas como JPEG bajando la calidad hasta que pese menos que maxBytes
+async function mcBlobJpeg(canvas,calidad,maxBytes){
+  for(var q=calidad;q>=0.4;q-=0.1){
+    var blob=await new Promise(function(res){canvas.toBlob(res,'image/jpeg',q);});
+    if(!blob||blob.type!=='image/jpeg')throw new Error('Tu navegador no pudo preparar la imagen');
+    if(blob.size<=maxBytes)return blob;
+  }
+  throw new Error('No pudimos reducir la imagen lo suficiente. Prueba con otra foto.');
+}
+function mcBlobBase64(blob){
+  return new Promise(function(resolve,reject){
+    var r=new FileReader();
+    r.onload=function(){resolve(String(r.result).split(',')[1]||'');};
+    r.onerror=function(){reject(new Error('No pudimos leer la imagen'));};
+    r.readAsDataURL(blob);
+  });
+}
+
+async function mcSubirFoto(){
+  if(!mcFoto.src||mcFoto.subiendo)return;
+  mcLimpiarError('mcFotoModalErr');
+  mcFoto.subiendo=true;
+  var btn=mcEl('mcFotoGuardar');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    var grande=document.createElement('canvas');
+    mcFotoDibujar(grande,256);
+    var mini=document.createElement('canvas');
+    mini.width=64;mini.height=64;
+    var mctx=mini.getContext('2d');
+    mctx.imageSmoothingEnabled=true;mctx.imageSmoothingQuality='high';
+    mctx.drawImage(grande,0,0,64,64);
+    var bigBlob=await mcBlobJpeg(grande,0.85,40*1024);
+    var miniBlob=await mcBlobJpeg(mini,0.8,4500);
+    var d=await apiRequest('/mi-cuenta/foto',{method:'PUT',body:JSON.stringify({
+      foto:await mcBlobBase64(bigBlob),miniatura:await mcBlobBase64(miniBlob)
+    })});
+    mc.perfil.miniatura=d.miniatura;
+    mcFoto.subiendo=false;
+    mcCerrarFoto();
+    mcPintarPerfil();
+    mcCargarFotoGrande();
+    lndToast('Foto actualizada');
+  }catch(e){
+    mcFoto.subiendo=false;
+    if(e.message!=='Sesión expirada')mcMostrarError('mcFotoModalErr',e.message||'No se pudo subir la foto');
+    btn.disabled=false;btn.textContent='Guardar foto';
+  }
+}
+
+async function mcQuitarFoto(){
+  if(!confirm('¿Quitar tu foto de perfil?'))return;
+  try{
+    await apiRequest('/mi-cuenta/foto',{method:'DELETE'});
+    mc.perfil.miniatura=null;
+    if(mc.fotoUrl){URL.revokeObjectURL(mc.fotoUrl);mc.fotoUrl=null;}
+    mcPintarPerfil();
+    lndToast('Foto eliminada');
+  }catch(e){
+    if(e.message!=='Sesión expirada')mcMostrarError('mcFotoErr',e.message||'No se pudo quitar la foto');
+  }
 }
 
 function mcPintarMembresia(){

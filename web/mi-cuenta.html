@@ -47,6 +47,13 @@
           <span class="mc-muted" id="mcPerfilEmail"></span>
         </div>
       </div>
+      <div class="mc-foto-actions">
+        <button type="button" class="mc-btn-ghost" id="mcFotoBtn" onclick="mcEl('mcFotoInput').click()">Subir foto</button>
+        <button type="button" class="mc-btn-ghost" id="mcFotoQuitar" onclick="mcQuitarFoto()" style="display:none">Quitar foto</button>
+        <input type="file" id="mcFotoInput" accept="image/*" style="display:none" onchange="mcElegirFoto(this)"/>
+      </div>
+      <div class="ferr" id="mcFotoErr"></div>
+      <p class="mc-muted" style="margin:.2rem 0 1rem">Tómala con la cámara o elige una de tu galería. Se recorta en tu dispositivo y se reduce antes de subirse.</p>
       <div class="field"><label for="mcNombre">Nombre completo</label><input type="text" id="mcNombre" maxlength="100" autocomplete="name"/></div>
       <div class="field"><label for="mcTelefono">Teléfono</label><input type="tel" id="mcTelefono" maxlength="20" placeholder="+56 9 xxxx xxxx" autocomplete="tel"/></div>
       <div class="field"><label for="mcEmail">Correo</label><input type="email" id="mcEmail" readonly/></div>
@@ -106,6 +113,20 @@
 
   </div>
 </main>
+
+<!-- FOTO DE PERFIL: encuadre -->
+<div class="overlay" id="mcFotoOverlay">
+  <div class="modal" style="max-width:340px;text-align:center">
+    <button class="modal-close" onclick="mcCerrarFoto()" aria-label="Cerrar">×</button>
+    <h3 style="margin-bottom:.4rem">Ajusta tu foto</h3>
+    <p class="mc-muted" style="margin-bottom:.9rem">Arrastra la imagen para encuadrar y usa el control para acercar.</p>
+    <canvas id="mcFotoCanvas" class="mc-foto-canvas" width="256" height="256"></canvas>
+    <input type="range" id="mcFotoZoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom" oninput="mcFotoZoomar(this.value)"/>
+    <div class="ferr" id="mcFotoModalErr"></div>
+    <button class="btn-grad" id="mcFotoGuardar" onclick="mcSubirFoto()">Guardar foto</button>
+    <button class="mc-btn-ghost" style="margin-top:.6rem;width:100%" onclick="mcCerrarFoto()">Cancelar</button>
+  </div>
+</div>
 
 <!-- PAGO EN LÍNEA -->
 <div class="overlay" id="mcPayOverlay" onclick="if(event.target===this)mcCerrarPago()">

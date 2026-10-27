@@ -14,8 +14,7 @@ async function renderAsistencia(){
       var attPct=inscritos>0?Math.round(asistencias/inscritos*100):0;
       var filas=inscritos
         ?bloque.reservas.map(function(r){
-            var ini=getInitials(r.nombre);
-            return '<div class="ci-row"><div class="av" style="background:#1d4ed8;width:28px;height:28px;font-size:10px">'+esc(ini)+'</div>'
+            return '<div class="ci-row">'+avatarHtml(r.cliente_id,r.nombre,28,10)
               +'<span class="ci-name">'+esc(r.nombre)+'</span>'
               +'<button class="ci-btn '+(r.asistio?'done':'pending')+'" onclick="toggleAtt('+r.reserva_id+','+r.asistencia_id+')">'+(r.asistio?'✓ Asistió':'Marcar asistencia')+'</button></div>';
           }).join('')
@@ -28,6 +27,7 @@ async function renderAsistencia(){
     }).join('');
     if(!html)html='<div class="aalert info"><span>ℹ️</span><span>No hay bloques para este día.</span></div>';
     el.innerHTML=html;
+    hidratarAvatares(el);
   } catch(e) {
     el.innerHTML='<p style="color:var(--red);padding:1rem">Error al cargar asistencia.</p>';
     adminToast(e.message||'Error al cargar asistencia','err');

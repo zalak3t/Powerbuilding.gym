@@ -64,7 +64,7 @@ function paintPagos(){
     var anulado=p.estado==='anulado';
     return '<tr'+(anulado?' style="opacity:.55"':'')+'>'
       +'<td>'+esc(formatFechaCL(p.fecha_pago))+'</td>'
-      +'<td style="color:var(--atext);font-weight:500">'+esc(p.cliente_nombre)+'</td>'
+      +'<td style="color:var(--atext);font-weight:500"><div style="display:flex;align-items:center;gap:8px">'+avatarHtml(p.cliente_id,p.cliente_nombre,28,10)+'<span>'+esc(p.cliente_nombre)+'</span></div></td>'
       +'<td>'+esc(p.plan_nombre)+'</td>'
       +'<td style="color:var(--atext);font-weight:600">'+esc(formatCLP(p.monto))+'</td>'
       +'<td>'+esc(p.metodo==='webpay'?'Webpay':p.metodo)+'</td>'
@@ -76,6 +76,7 @@ function paintPagos(){
       +(anulado?(p.transaccion_id?'':'—'):'<button class="abtn danger" style="font-size:11px;padding:5px 10px" onclick="anularPagoUI('+p.id+')">Anular</button>')
       +'</div></td></tr>';
   }).join('');
+  hidratarAvatares(tbody);
 }
 
 function applyPagoFilters(){renderPagos();}
@@ -185,13 +186,14 @@ async function renderTransaccionesOnline(){
       if(t.documento_disponible)acc+='<button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="descargarComprobante('+t.id+')">Descargar</button>';
       if(t.estado==='autorizada'&&t.documento_estado!=='emitido')acc+='<button class="abtn primary" style="font-size:11px;padding:5px 10px" onclick="reintentarDocumentoUI('+t.id+')">Reintentar</button>';
       return '<tr><td>'+esc(fechaNotif(t.creado_en))+'</td>'
-        +'<td style="color:var(--atext);font-weight:500">'+esc(t.cliente_nombre)+'</td>'
+        +'<td style="color:var(--atext);font-weight:500"><div style="display:flex;align-items:center;gap:8px">'+avatarHtml(t.cliente_id,t.cliente_nombre,28,10)+'<span>'+esc(t.cliente_nombre)+'</span></div></td>'
         +'<td>'+esc(t.plan_nombre)+'</td>'
         +'<td style="color:var(--atext);font-weight:600">'+esc(formatCLP(t.monto))+'</td>'
         +'<td><span class="abadge '+(TX_ESTADO_CLASE[t.estado]||'muted')+'">'+esc(t.estado)+'</span></td>'
         +'<td>'+docTxt+'</td>'
         +'<td><div class="abtn-row">'+(acc||'—')+'</div></td></tr>';
     }).join('');
+    hidratarAvatares(tbody);
   } catch(e) {
     tbody.innerHTML='<tr><td colspan="7" style="color:var(--red);padding:1rem">Error al cargar las transacciones.</td></tr>';
   }
