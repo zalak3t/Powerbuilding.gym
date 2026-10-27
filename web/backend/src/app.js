@@ -21,6 +21,8 @@ const plantillasRouter = require('./routes/plantillas.routes');
 const reportesRouter = require('./routes/reportes.routes');
 const notificacionesRouter = require('./routes/notificaciones.routes');
 const pagosOnlineRouter = require('./routes/pagosOnline.routes');
+const miCuentaRouter = require('./routes/miCuenta.routes');
+const avataresRouter = require('./routes/avatares.routes');
 
 const app = express();
 
@@ -65,6 +67,8 @@ app.use('/api/plantillas',   plantillasRouter);
 app.use('/api/reportes',     reportesRouter);
 app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api/pagos-online', pagosOnlineRouter);
+app.use('/api/mi-cuenta',    miCuentaRouter);
+app.use('/api/avatares',     avataresRouter);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -24,6 +24,9 @@ Se aplican **a mano** por el responsable del proyecto. No se ejecutan desde el c
 |---|---|
 | `001_disciplinas_instructores.sql` | Tablas `disciplinas` (con 3 filas iniciales) e `instructores`; columnas opcionales `bloques.disciplina_id` e `instructor_id`. Solo agrega. |
 | `002_planes_pagos_plantillas.sql` | Tablas `planes`, `pagos` (FK a `clientes` y `planes`) y `plantillas_notificacion` (con 3 plantillas iniciales). Sin planes ni precios de ejemplo. Solo agrega. |
+| `003_notificaciones_log.sql` | Tabla `notificaciones_log` (registro de correos y recordatorios, con `clave_unica` para no duplicar envíos). |
+| `004_pagos_online.sql` | Pago en línea (Webpay): método `webpay` y `pagos.origen`, tablas `transacciones_pago` y `documentos_pago`, plantilla `pago_confirmado`. |
+| `005_mi_cuenta.sql` | "Mi cuenta" del alumno: tablas `clientes_foto` (foto y miniatura JPEG en BYTEA) y `marcas` (marcas declaradas). Solo agrega. |
 
 Compatibles con PostgreSQL 9.6 o superior (sin identity columns ni sintaxis exclusiva de versiones recientes).
 

@@ -6,6 +6,7 @@ const {
   getUserById,
 } = require('../services/auth.service');
 const v = require('../utils/validate');
+const { validarFortaleza } = require('../utils/password');
 
 async function register(req, res) {
   const { nombre, email, password, telefono } = req.body;
@@ -22,11 +23,9 @@ async function register(req, res) {
   if (!v.isOptionalString(telefono, 20)) {
     return res.status(400).json({ ok: false, error: 'El teléfono no puede superar 20 caracteres' });
   }
-  if (!v.minLen(password, 8)) {
-    return res.status(400).json({ ok: false, error: 'La contraseña debe tener al menos 8 caracteres' });
-  }
-  if (!v.maxLen(password, 72)) {
-    return res.status(400).json({ ok: false, error: 'La contraseña no puede superar 72 caracteres' });
+  const errPassword = validarFortaleza(password);
+  if (errPassword) {
+    return res.status(400).json({ ok: false, error: errPassword });
   }
 
   const existing = await findUserByEmail(email);
