@@ -60,6 +60,15 @@ function showAdminPanel(){
   initAdmin();
 }
 
+// Admin: vuelve a la landing sin cerrar sesión (el token se conserva)
+function showLanding(){
+  document.getElementById('adminApp').classList.remove('show');
+  document.getElementById('landing').style.display='block';
+  updateNav();
+  renderLandingBlocks();
+  window.scrollTo(0,0);
+}
+
 // Token vencido: limpia la sesión y vuelve a la landing
 function handleSessionExpired(){
   clearToken();
@@ -93,8 +102,11 @@ function updateNav(){
   var esAlumno=!!curUser&&curUser.rol==='alumno';
   var li=document.getElementById('navCuentaLi');
   if(li)li.style.display=esAlumno?'list-item':'none';
+  var esAdmin=!!curUser&&curUser.rol==='admin';
+  var lp=document.getElementById('navPanelLi');
+  if(lp)lp.style.display=esAdmin?'list-item':'none';
   var nav=document.querySelector('#landing nav');
-  if(nav)nav.classList.toggle('has-cuenta',esAlumno);
+  if(nav)nav.classList.toggle('has-cuenta',esAlumno||esAdmin);
   if(typeof actualizarBotonPagar==='function')actualizarBotonPagar();
 }
 

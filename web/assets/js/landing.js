@@ -29,6 +29,7 @@ async function renderLandingBlocks(){
       var cls=susp?'susp':hasRes?'cancel':full?'full':'avail';
       var lbl=susp?'⏸ Suspendido':hasRes?'Cancelar':full?'Sin cupos':'Reservar';
       var onclick=susp?'':hasRes?'lCancelBlock('+b.reserva_id+')':full?'':('lReserveBlock('+b.id+')');
+      var esAdmin=curUser.rol==='admin'; // el admin no tiene cliente asociado: ve los bloques sin botón de reserva
       return '<div class="bcard'+(hasRes?' reserved':'')+(susp?' suspended':'')+'">'
         +'<div class="btime">'+esc(b.horario)+'</div>'
         +'<div class="bday">'+esc(b.dia)+(susp?' · <span style="color:#f59e0b">'+esc(b.mensaje)+'</span>':' · '+esc(taken)+'/'+esc(cap)+' inscritos')+'</div>'
@@ -36,7 +37,7 @@ async function renderLandingBlocks(){
         +'<div class="bbar-wrap"><div class="bbar" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
         +'<div class="bfoot"><span class="bslots" style="color:'+(full?'#ef4444':hasRes?'var(--pink2)':'var(--muted)')+'">'+
         (susp?'Bloque suspendido':hasRes?'✓ Reservado':full?'Sin cupos':free+' cupo'+(free!==1?'s':''))+'</span>'
-        +'<button class="btn-r '+cls+'"'+(onclick?' onclick="'+onclick+'"':'')+'>'+lbl+'</button></div></div>';
+        +(esAdmin?'':'<button class="btn-r '+cls+'"'+(onclick?' onclick="'+onclick+'"':'')+'>'+lbl+'</button>')+'</div></div>';
     }).join('');
   } catch(e) {
     el.innerHTML='<p style="text-align:center;color:#ef4444;padding:2rem">Error al cargar bloques. Intenta de nuevo.</p>';

@@ -218,6 +218,7 @@
       <li><a href="#nosotros">Nosotros</a></li>
       <li><a href="#horarios">Agenda</a></li>
       <li><a href="#contacto">Contacto</a></li>
+      <li id="navPanelLi" style="display:none"><button class="nav-pill" onclick="showAdminPanel()">Panel admin</button></li>
       <li id="navCuentaLi" style="display:none"><a class="nav-pill" href="mi-cuenta.html">Mi cuenta</a></li>
       <li id="navPagarLi" style="display:none"><button class="nav-pill" onclick="openPagar()">Pagar mi plan</button></li>
       <li><button class="nav-pill" id="navBtn" onclick="handleNav()">Iniciar sesión</button></li>
@@ -395,6 +396,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="tb-badge">Admin</span>
+        <button class="tb-home" onclick="showLanding()">← Inicio</button>
         <button class="tb-logout" onclick="doLogout()">Cerrar sesión</button>
       </div>
     </div>
