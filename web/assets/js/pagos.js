@@ -38,14 +38,15 @@ async function loadPagoOptions(){
 
 async function renderPagos(){
   var tbody=document.getElementById('pagoTable');
-  tbody.innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">Cargando pagos...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="9" style="color:var(--amuted);padding:1rem">Cargando pagos...</td></tr>';
   try {
     if(!pagoClientesLoaded)await loadPagoOptions();
     var data=await apiRequest('/pagos'+pagoFiltersQuery());
     adminPagosCache=data.pagos||[];
     paintPagos();
+    renderTransaccionesOnline();
   } catch(e) {
-    tbody.innerHTML='<tr><td colspan="8" style="color:var(--red);padding:1rem">Error al cargar pagos.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="color:var(--red);padding:1rem">Error al cargar pagos.</td></tr>';
     adminToast(e.message||'Error al cargar pagos','err');
   }
 }
@@ -56,7 +57,7 @@ function paintPagos(){
   document.getElementById('pagoCount').textContent=adminPagosCache.length+' pago'+(adminPagosCache.length!==1?'s':'')+' · '+formatCLP(suma)+' (sin anulados)';
   var tbody=document.getElementById('pagoTable');
   if(!adminPagosCache.length){
-    tbody.innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">No hay pagos con ese criterio.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="color:var(--amuted);padding:1rem">No hay pagos con ese criterio.</td></tr>';
     return;
   }
   tbody.innerHTML=adminPagosCache.map(function(p){
@@ -66,11 +67,13 @@ function paintPagos(){
       +'<td style="color:var(--atext);font-weight:500">'+esc(p.cliente_nombre)+'</td>'
       +'<td>'+esc(p.plan_nombre)+'</td>'
       +'<td style="color:var(--atext);font-weight:600">'+esc(formatCLP(p.monto))+'</td>'
-      +'<td>'+esc(p.metodo)+'</td>'
+      +'<td>'+esc(p.metodo==='webpay'?'Webpay':p.metodo)+'</td>'
+      +'<td><span class="abadge '+(p.origen==='online'?'blue':'muted')+'">'+esc(p.origen==='online'?'online':'manual')+'</span></td>'
       +'<td style="white-space:nowrap">'+esc(formatFechaCL(p.periodo_desde))+' → '+esc(formatFechaCL(p.periodo_hasta))+'</td>'
       +'<td><span class="abadge '+(anulado?'muted':'green')+'">'+esc(p.estado)+'</span></td>'
       +'<td><div class="abtn-row">'
-      +(anulado?'—':'<button class="abtn danger" style="font-size:11px;padding:5px 10px" onclick="anularPagoUI('+p.id+')">Anular</button>')
+      +(p.transaccion_id?'<button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="descargarComprobante('+p.transaccion_id+')">Comprobante</button>':'')
+      +(anulado?(p.transaccion_id?'':'—'):'<button class="abtn danger" style="font-size:11px;padding:5px 10px" onclick="anularPagoUI('+p.id+')">Anular</button>')
       +'</div></td></tr>';
   }).join('');
 }
@@ -156,4 +159,50 @@ async function anularPagoUI(id){
   } catch(e) {
     adminToast(e.message||'Error al anular pago','err');
   }
+}
+
+// ── Transacciones online (Webpay) ──
+var TX_ESTADO_CLASE={autorizada:'green',iniciada:'blue',rechazada:'red',anulada:'muted',expirada:'muted'};
+
+async function renderTransaccionesOnline(){
+  var tbody=document.getElementById('txTable');
+  if(!tbody)return;
+  try {
+    var data=await apiRequest('/pagos-online?limit=100');
+    var rows=data.transacciones||[];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="7" style="color:var(--amuted);padding:1rem">Aún no hay transacciones online.</td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(function(t){
+      var docTxt='—';
+      if(t.documento_estado){
+        docTxt='<span class="abadge '+(t.documento_estado==='emitido'?'green':'red')+'">'+esc(t.documento_estado)+'</span>'
+          +(t.documento_folio?' '+esc(t.documento_folio):'')
+          +(t.documento_detalle&&t.documento_estado==='error'?'<div style="font-size:11px;color:var(--amuted)">'+esc(t.documento_detalle)+'</div>':'');
+      }
+      var acc='';
+      if(t.documento_disponible)acc+='<button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="descargarComprobante('+t.id+')">Descargar</button>';
+      if(t.estado==='autorizada'&&t.documento_estado!=='emitido')acc+='<button class="abtn primary" style="font-size:11px;padding:5px 10px" onclick="reintentarDocumentoUI('+t.id+')">Reintentar</button>';
+      return '<tr><td>'+esc(fechaNotif(t.creado_en))+'</td>'
+        +'<td style="color:var(--atext);font-weight:500">'+esc(t.cliente_nombre)+'</td>'
+        +'<td>'+esc(t.plan_nombre)+'</td>'
+        +'<td style="color:var(--atext);font-weight:600">'+esc(formatCLP(t.monto))+'</td>'
+        +'<td><span class="abadge '+(TX_ESTADO_CLASE[t.estado]||'muted')+'">'+esc(t.estado)+'</span></td>'
+        +'<td>'+docTxt+'</td>'
+        +'<td><div class="abtn-row">'+(acc||'—')+'</div></td></tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML='<tr><td colspan="7" style="color:var(--red);padding:1rem">Error al cargar las transacciones.</td></tr>';
+  }
+}
+
+async function reintentarDocumentoUI(id){
+  try {
+    var data=await apiRequest('/pagos-online/'+id+'/reintentar-documento',{method:'POST'});
+    adminToast(data.message||'Listo',data.ok?'ok':'err');
+  } catch(e) {
+    adminToast(e.message||'No se pudo reintentar','err');
+  }
+  renderTransaccionesOnline();
 }

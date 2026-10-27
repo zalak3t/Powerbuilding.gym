@@ -10,10 +10,11 @@ const PAGO_SELECT = `
          pg.metodo,
          to_char(pg.periodo_desde, 'YYYY-MM-DD') AS periodo_desde,
          to_char(pg.periodo_hasta, 'YYYY-MM-DD') AS periodo_hasta,
-         pg.estado, pg.notas, pg.creado_en, pg.actualizado_en
+         pg.estado, pg.origen, tp.id AS transaccion_id, pg.notas, pg.creado_en, pg.actualizado_en
   FROM pagos pg
   JOIN clientes c ON c.id = pg.cliente_id
-  JOIN planes pl  ON pl.id = pg.plan_id`;
+  JOIN planes pl  ON pl.id = pg.plan_id
+  LEFT JOIN transacciones_pago tp ON tp.pago_id = pg.id`;
 
 async function getPagoById(id, client) {
   const run = client ? client.query.bind(client) : query;
@@ -38,23 +39,27 @@ async function getPagos({ clienteId, desde, hasta }) {
 /**
  * Crea un pago. periodo_hasta (inclusivo) = periodo_desde + (duracion_dias - 1).
  * monto null => precio del plan. Devuelve { pago } o { error: 'CLIENTE_NOT_FOUND' | 'PLAN_NOT_FOUND' | 'PLAN_INACTIVE' }.
+ * origen: 'manual' (admin, por defecto) | 'online' (Webpay). Con `externo` (un client de pg) corre
+ * dentro de esa transaccion en vez de abrir una propia.
  */
-async function createPago({ clienteId, planId, monto, metodo, fechaPago, periodoDesde, notas }) {
-  return withTransaction(async (client) => {
+async function createPago({ clienteId, planId, monto, metodo, fechaPago, periodoDesde, notas, origen }, externo) {
+  const ejecutar = externo ? (fn) => fn(externo) : withTransaction;
+  return ejecutar(async (client) => {
     const cli = await client.query('SELECT id FROM clientes WHERE id = $1', [clienteId]);
     if (!cli.rows[0]) return { error: 'CLIENTE_NOT_FOUND' };
 
     const plan = await client.query('SELECT id, precio, activo FROM planes WHERE id = $1 FOR SHARE', [planId]);
     if (!plan.rows[0]) return { error: 'PLAN_NOT_FOUND' };
-    if (!plan.rows[0].activo) return { error: 'PLAN_INACTIVE' };
+    // Un pago online ya cobrado se registra aunque el plan se haya desactivado mientras se pagaba.
+    if (!plan.rows[0].activo && origen !== 'online') return { error: 'PLAN_INACTIVE' };
 
     const ins = await client.query(
-      `INSERT INTO pagos (cliente_id, plan_id, monto, fecha_pago, metodo, periodo_desde, periodo_hasta, notas)
+      `INSERT INTO pagos (cliente_id, plan_id, monto, fecha_pago, metodo, periodo_desde, periodo_hasta, notas, origen)
        SELECT $1, pl.id, COALESCE($3::int, pl.precio), $4::date, $5, $6::date,
-              $6::date + (pl.duracion_dias - 1), $7
+              $6::date + (pl.duracion_dias - 1), $7, $8
        FROM planes pl WHERE pl.id = $2
        RETURNING id`,
-      [clienteId, planId, monto, fechaPago, metodo, periodoDesde, notas]
+      [clienteId, planId, monto, fechaPago, metodo, periodoDesde, notas, origen || 'manual']
     );
     return { pago: await getPagoById(ins.rows[0].id, client) };
   });

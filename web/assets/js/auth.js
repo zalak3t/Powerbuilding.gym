@@ -88,6 +88,7 @@ function handleNav(){
 function updateNav(){
   var b=document.getElementById('navBtn');
   b.textContent=curUser?(curUser.nombre||curUser.name||'').split(' ')[0]+' · Salir':'Iniciar sesión';
+  if(typeof actualizarBotonPagar==='function')actualizarBotonPagar();
 }
 
 async function checkExistingSession(){

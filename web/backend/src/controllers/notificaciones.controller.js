@@ -3,7 +3,7 @@ const { proveedorActivo } = require('../services/email.service');
 const job = require('../jobs/notificaciones.job');
 const v = require('../utils/validate');
 
-const TIPOS = ['confirmacion_reserva', 'recordatorio_bloque', 'vencimiento_membresia'];
+const TIPOS = ['confirmacion_reserva', 'recordatorio_bloque', 'vencimiento_membresia', 'pago_confirmado'];
 const ESTADOS = ['enviado', 'simulado', 'error'];
 const LIMITE_DEFECTO = 50;
 const LIMITE_MAX = 200;

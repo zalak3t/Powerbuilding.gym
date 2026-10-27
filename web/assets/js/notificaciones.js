@@ -1,5 +1,5 @@
 // ══ NOTIFICACIONES ══
-var NOTIF_TIPOS={confirmacion_reserva:'Confirmación de reserva',recordatorio_bloque:'Recordatorio de bloque',vencimiento_membresia:'Vencimiento de membresía'};
+var NOTIF_TIPOS={confirmacion_reserva:'Confirmación de reserva',recordatorio_bloque:'Recordatorio de bloque',vencimiento_membresia:'Vencimiento de membresía',pago_confirmado:'Pago confirmado'};
 var NOTIF_ESTADO_CLASE={enviado:'green',simulado:'blue',error:'red'};
 
 function fechaNotif(iso){

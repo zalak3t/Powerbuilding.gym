@@ -39,16 +39,21 @@ function sinSecretos(texto, apiKey) {
   return s.slice(0, 500);
 }
 
-async function llamarBrevo(c, { destinatario, asunto, html }) {
+// adjuntos: [{ nombre, base64 }] -> campo `attachment` de Brevo ({ name, content } en base64).
+async function llamarBrevo(c, { destinatario, asunto, html, adjuntos }) {
+  const body = {
+    sender: { name: c.fromName, email: c.from },
+    to: [{ email: destinatario }],
+    subject: asunto,
+    htmlContent: html,
+  };
+  if (adjuntos && adjuntos.length) {
+    body.attachment = adjuntos.map((a) => ({ name: a.nombre, content: a.base64 }));
+  }
   const resp = await fetch(BREVO_URL, {
     method: 'POST',
     headers: { 'api-key': c.apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      sender: { name: c.fromName, email: c.from },
-      to: [{ email: destinatario }],
-      subject: asunto,
-      htmlContent: html,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!resp.ok) {
@@ -78,7 +83,7 @@ async function existeClave(claveUnica) {
  * cualquier fallo queda como estado 'error'. Devuelve { estado, duplicado }.
  * Si claveUnica ya existe en el registro no envía nada (duplicado: true).
  */
-async function enviarCorreo({ tipo, clienteId, destinatario, asunto, texto, claveUnica, forzarError }) {
+async function enviarCorreo({ tipo, clienteId, destinatario, asunto, texto, claveUnica, forzarError, adjuntos }) {
   const c = config();
   const asuntoLimpio = sanearAsunto(asunto);
   try {
@@ -92,7 +97,7 @@ async function enviarCorreo({ tipo, clienteId, destinatario, asunto, texto, clav
       detalle = sinSecretos(forzarError, c.apiKey);
     } else if (proveedorActivo() === 'brevo') {
       try {
-        await llamarBrevo(c, { destinatario, asunto: asuntoLimpio, html: textoAHtml(texto) });
+        await llamarBrevo(c, { destinatario, asunto: asuntoLimpio, html: textoAHtml(texto), adjuntos });
         estado = 'enviado';
       } catch (e) {
         estado = 'error';

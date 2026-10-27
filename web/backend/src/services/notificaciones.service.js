@@ -4,13 +4,14 @@ const { reemplazarVariables } = require('../utils/plantillas');
 const { query } = require('../config/db');
 const v = require('../utils/validate');
 const { TZ, HOY_CL_SQL } = require('../utils/fechas');
+const { frontendUrl } = require('../config/pagos');
 
 /**
  * Arma el correo desde la plantilla de la BD (clave = tipo) y lo envía/registra.
  * Plantilla inactiva o inexistente: no se envía; se registra como 'error' con el motivo.
  * `cliente` = { id, nombre, email }. Devuelve { estado, duplicado }.
  */
-async function enviarPlantilla({ clave, cliente, datos, claveUnica }) {
+async function enviarPlantilla({ clave, cliente, datos, claveUnica, adjuntos }) {
   const plantilla = await getPlantillaByClave(clave);
   const vars = Object.assign({ nombre: cliente.nombre }, datos);
   const base = { tipo: clave, clienteId: cliente.id, destinatario: cliente.email, claveUnica };
@@ -22,6 +23,7 @@ async function enviarPlantilla({ clave, cliente, datos, claveUnica }) {
   return enviarCorreo(Object.assign({}, base, {
     asunto: reemplazarVariables(plantilla.asunto, vars),
     texto: reemplazarVariables(plantilla.cuerpo, vars),
+    adjuntos,
   }));
 }
 
@@ -140,7 +142,7 @@ async function revisarVencimientos() {
     const res = await enviarPlantilla({
       clave: 'vencimiento_membresia',
       cliente: { id: f.cliente_id, nombre: f.nombre, email: f.email },
-      datos: { plan: f.plan, fecha_vencimiento: f.vence },
+      datos: { plan: f.plan, fecha_vencimiento: f.vence, link_pago: frontendUrl() + '/?pagar=1' },
       claveUnica: 'vencimiento:' + f.cliente_id + ':' + f.vence,
     });
     if (!res.duplicado) generados++;

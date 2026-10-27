@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<title>Resultado del pago · Powerbuilding.gym</title>
+<link rel="stylesheet" href="assets/css/styles.css"/>
+<style>
+  body{background:var(--dark);color:var(--light);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+  .res-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06)}
+  .res-head a.back{color:var(--pink2);font-size:13px;text-decoration:none}
+  .res-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+  .res-card{width:100%;max-width:460px;background:var(--dark2);border:1px solid rgba(233,30,140,.2);border-radius:20px;padding:2rem;text-align:center}
+  .res-icon{width:56px;height:56px;border-radius:50%;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;background:var(--grad);color:#fff}
+  .res-icon.bad{background:rgba(255,112,112,.15);color:#ff7070}
+  .res-card h1{font-size:1.5rem;margin-bottom:.5rem}
+  .res-card p{font-size:14px;color:rgba(245,240,238,.75)}
+  .res-det{margin:1.25rem 0;text-align:left;border-top:1px solid rgba(255,255,255,.08)}
+  .res-det div{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:14px}
+  .res-det span{color:var(--muted)}
+  .res-actions{display:flex;flex-direction:column;gap:.6rem;margin-top:1.25rem}
+  .res-actions a{text-decoration:none;text-align:center;display:block}
+  .res-ghost{padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;background:none;cursor:pointer}
+</style>
+</head>
+<body>
+
+<header class="res-head">
+  <div class="footer-logo" style="margin:0">
+    <div class="logo-circle-sm">PB</div>
+    <div class="logo-text"><span class="gt">Powerbuilding</span><small>.GYM</small></div>
+  </div>
+  <a class="back" href="index.html">← Volver al inicio</a>
+</header>
+
+<main class="res-wrap">
+  <div class="res-card" id="card">
+    <div class="res-icon" id="icon">…</div>
+    <h1 id="titulo">Verificando tu pago</h1>
+    <p id="texto">Un momento, estamos consultando el resultado.</p>
+    <div class="res-det" id="detalle" style="display:none"></div>
+    <div class="res-actions" id="acciones"></div>
+  </div>
+</main>
+
+<script src="assets/js/helpers.js"></script>
+<script>
+  var PB_HOST = window.location.hostname;
+  window.API_BASE_URL = (PB_HOST === 'localhost' || PB_HOST === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : 'https://powerbuildinggym-production.up.railway.app/api';
+  // api.js llama a esta función ante un 401; en esta página solo se muestra el aviso de sesión.
+  function handleSessionExpired(){ clearToken(); mostrarSinSesion(); }
+</script>
+<script src="assets/js/api.js"></script>
+<script>
+  var txId = parseInt(new URLSearchParams(window.location.search).get('tx'), 10);
+  var intentos = 0;
+
+  function $(id){ return document.getElementById(id); }
+  function pintar(ok, titulo, texto){
+    $('icon').className = 'res-icon' + (ok ? '' : ' bad');
+    $('icon').textContent = ok ? '✓' : '!';
+    $('titulo').textContent = titulo;
+    $('texto').textContent = texto;
+  }
+  function acciones(html){ $('acciones').innerHTML = html; }
+  var volver = '<a class="btn-grad" href="index.html">Volver al inicio</a>';
+  var reintentar = '<a class="btn-grad" href="index.html?pagar=1">Intentar de nuevo</a><a class="res-ghost" href="index.html">Volver al inicio</a>';
+
+  function mostrarSinSesion(){
+    pintar(false, 'Inicia sesión', 'Para ver el resultado de tu pago, inicia sesión en tu cuenta.');
+    acciones('<a class="btn-grad" href="index.html">Ir al inicio</a>');
+  }
+
+  function detalle(t){
+    var filas = [['Plan', t.plan_nombre], ['Monto', formatCLP(t.monto)]];
+    if (t.periodo_desde) filas.push(['Período', formatFechaCL(t.periodo_desde) + ' al ' + formatFechaCL(t.periodo_hasta)]);
+    if (t.documento_folio) filas.push(['Comprobante', t.documento_folio]);
+    $('detalle').innerHTML = filas.map(function(f){ return '<div><span>' + esc(f[0]) + '</span><strong>' + esc(f[1]) + '</strong></div>'; }).join('');
+    $('detalle').style.display = 'block';
+  }
+
+  async function descargar(){
+    try {
+      var res = await fetch(API_BASE_URL + '/pagos-online/' + txId + '/documento', { headers: authHeaders() });
+      if (!res.ok) { alert('El comprobante aún no está disponible. Te lo enviamos por correo.'); return; }
+      var blob = await res.blob();
+      var a = document.createElement('a'); var obj = URL.createObjectURL(blob);
+      a.href = obj; a.download = 'comprobante-' + txId + '.pdf';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(obj); }, 1000);
+    } catch (e) { alert('Error de conexión al descargar el comprobante.'); }
+  }
+
+  async function cargar(){
+    if (!txId) { pintar(false, 'No encontramos el pago', 'No pudimos identificar tu transacción. Si se realizó un cobro, contáctanos.'); acciones(volver); return; }
+    if (!getToken()) { mostrarSinSesion(); return; }
+    try {
+      var data = await apiRequest('/pagos-online/' + txId);
+      var t = data.transaccion;
+      if (t.estado === 'autorizada') {
+        pintar(true, '¡Pago exitoso!', 'Tu plan quedó activo. Te enviamos el comprobante por correo.');
+        detalle(t);
+        acciones((t.documento_disponible ? '<button class="btn-grad" onclick="descargar()">Descargar comprobante</button>' : '') + '<a class="res-ghost" href="index.html">Volver al inicio</a>');
+      } else if (t.estado === 'rechazada') {
+        pintar(false, 'Pago rechazado', 'No se realizó ningún cobro. Puedes intentarlo nuevamente con otro medio de pago.');
+        acciones(reintentar);
+      } else if (t.estado === 'anulada') {
+        pintar(false, 'Pago anulado', 'Cancelaste el pago, por lo que no se realizó ningún cobro.');
+        acciones(reintentar);
+      } else if (t.estado === 'expirada') {
+        pintar(false, 'Tiempo agotado', 'El tiempo para completar el pago terminó y no se realizó ningún cobro.');
+        acciones(reintentar);
+      } else {
+        // iniciada: la confirmación puede tardar unos segundos
+        pintar(true, 'Confirmando tu pago', 'Estamos confirmando tu pago con Webpay. Esto puede tardar unos segundos.');
+        if (++intentos <= 5) setTimeout(cargar, 3000);
+        else { pintar(false, 'Pago en revisión', 'Aún no recibimos la confirmación. Si se realizó un cobro, contáctanos.'); acciones(volver); }
+      }
+    } catch (e) {
+      if (e.message === 'Sesión expirada') return;
+      pintar(false, 'No pudimos mostrar el resultado', e.message || 'Error de conexión.');
+      acciones(volver);
+    }
+  }
+  cargar();
+</script>
+
+</body>
+</html>

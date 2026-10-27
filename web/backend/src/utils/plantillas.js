@@ -7,6 +7,9 @@ const VARIABLES = {
   horario: 'Horario del bloque (ej: 07:00 - 08:30)',
   plan: 'Nombre del plan contratado',
   fecha_vencimiento: 'Fecha de vencimiento de la membresía (AAAA-MM-DD)',
+  monto: 'Monto pagado (ej: $35.000)',
+  folio: 'Folio del comprobante de pago (ej: CP-000123)',
+  link_pago: 'Enlace para pagar o renovar el plan en línea',
 };
 
 // Datos de ejemplo para la vista previa.
@@ -16,6 +19,9 @@ const DATOS_EJEMPLO = {
   horario: '19:00 - 20:30',
   plan: 'Plan Mensual',
   fecha_vencimiento: '2026-11-30',
+  monto: '$35.000',
+  folio: 'CP-000123',
+  link_pago: 'https://tu-sitio.netlify.app/?pagar=1',
 };
 
 const VARIABLE_RE = /\{\{\s*([a-z_]+)\s*\}\}/gi;
