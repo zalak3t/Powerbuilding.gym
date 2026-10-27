@@ -270,8 +270,18 @@ updateOnline();
 if ('serviceWorker' in navigator
     && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(function () {});
+    // updateViaCache:'none' + update(): siempre se revisa si hay un service worker nuevo
+    navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/', updateViaCache: 'none' })
+      .then(function (reg) { reg.update().catch(function () {}); })
+      .catch(function () {});
   });
+  // Si ya había un service worker y se instala uno nuevo, recarga una sola vez para no seguir con el JS viejo
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      try { if (sessionStorage.getItem('pb_sw_recarga')) return; sessionStorage.setItem('pb_sw_recarga', '1'); } catch (e) { return; }
+      location.reload();
+    });
+  }
 }
 
 // ══ INIT ══

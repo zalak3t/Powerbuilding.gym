@@ -2,10 +2,38 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#080808"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Powerbuilding"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<link rel="manifest" href="manifest.webmanifest?v=b9"/>
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png?v=b9"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png?v=b9"/>
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png?v=b9"/>
+<link rel="icon" href="assets/icons/favicon.ico?v=b9" sizes="any"/>
+<style>html{background:#080808}</style>
+<script>
+// App instalada (modo standalone): al abrirla, un alumno con sesión entra directo a Mi cuenta.
+// El admin ya entra al panel por checkExistingSession (auth.js). La marca de sesión evita que
+// "← Inicio" o "Reservar más" te devuelvan a Mi cuenta mientras usas la app.
+// El rol del token es solo una pista para decidir a dónde ir; la sesión real se valida en Mi cuenta.
+(function(){
+  try{
+    var app=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+    if(!app||sessionStorage.getItem('pb_app_inicio'))return;
+    sessionStorage.setItem('pb_app_inicio','1');
+    var t=localStorage.getItem('pb_token');
+    if(!t)return;
+    var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(p&&p.rol==='alumno'&&(!p.exp||p.exp*1000>Date.now()))location.replace('mi-cuenta.html');
+  }catch(e){}
+})();
+</script>
 <title>Powerbuilding.gym</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="assets/css/styles.css?v=b8"/>
+<link rel="stylesheet" href="assets/css/styles.css?v=b9"/>
 </head>
 <body>
 
