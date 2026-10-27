@@ -1,6 +1,6 @@
 // ══ MI CUENTA (alumno) ══
 // Todas las llamadas usan /mi-cuenta/*: el servidor identifica al alumno por su token, nunca por un id.
-var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,chart:null,pagoHabilitado:false,pagando:false,fotoUrl:null};
+var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,reservas:[],asistencia:null,asistTodas:false,cancelando:false,chart:null,pagoHabilitado:false,pagando:false,fotoUrl:null};
 var MC_EJERCICIOS=[
   {id:'sentadilla',nombre:'Sentadilla',min:20,max:600,color:'#3b82f6'},
   {id:'banca',nombre:'Banca',min:20,max:500,color:'#10b981'},
@@ -51,7 +51,7 @@ async function mcInit(){
     var est=await fetch(API_BASE_URL+'/pagos-online/estado').then(function(r){return r.json();});
     mc.pagoHabilitado=!!est.habilitado;
   }catch(e){mc.pagoHabilitado=false;}
-  await Promise.all([mcCargarPerfil(),mcCargarPagos(),mcCargarMarcas()]);
+  await Promise.all([mcCargarPerfil(),mcCargarReservas(),mcCargarAsistencia(),mcCargarPagos(),mcCargarMarcas()]);
 }
 
 // ── Perfil y membresía ──
@@ -357,6 +357,94 @@ async function mcIniciarPago(){
     mc.pagando=false;
   }
 }
+
+// ── Reservas ──
+// Las reservas son recurrentes por bloque semanal (no tienen fecha): se muestra la próxima clase, no una reserva fechada.
+async function mcCargarReservas(){
+  try{
+    var d=await apiRequest('/mi-cuenta/reservas');
+    mc.reservas=d.reservas||[];
+    mcPintarReservas();
+  }catch(e){
+    if(e.message==='Sesión expirada')return;
+    mcEl('mcReservas').innerHTML='<p class="mc-muted">No pudimos cargar tus reservas.</p>';
+  }
+}
+
+function mcTextoProxima(r){
+  if(!r.proxima_fecha)return '';
+  var hoy=hoyChileISO();
+  var cuando=r.proxima_fecha===hoy?'hoy':r.proxima_fecha===sumarDiasISO(hoy,1)?'mañana':String(r.dia).toLowerCase()+' '+formatFechaCL(r.proxima_fecha);
+  return 'Próxima clase: '+cuando;
+}
+
+function mcPintarReservas(){
+  if(!mc.reservas.length){
+    mcEl('mcReservas').innerHTML='<p class="mc-muted">Aún no tienes reservas. Elige tus bloques en la agenda.</p>';
+    return;
+  }
+  mcEl('mcReservas').innerHTML=mc.reservas.map(function(r){
+    var quien=[r.disciplina,r.instructor?'con '+r.instructor:''].filter(Boolean).join(' · ');
+    var susp=r.estado==='suspendido';
+    return '<div class="mc-row"><div class="mc-row-main"><strong>'+esc(r.dia)+' · '+esc(r.horario)+'</strong>'
+      +(quien?'<span>'+esc(quien)+'</span><br/>':'')
+      +'<span>Cada semana'+(r.proxima_fecha?' · '+esc(mcTextoProxima(r)):'')+'</span></div>'
+      +'<div class="mc-row-side">'+(susp?'<span class="mc-badge warn">Bloque suspendido</span>':'')
+      +'<button class="mc-link danger" onclick="mcCancelarReserva('+Number(r.reserva_id)+')">Cancelar reserva</button></div></div>';
+  }).join('');
+}
+
+// Reutiliza DELETE /reservas/:id. Un error de la API (403, 404...) no cierra la sesión: solo un 401 lo hace.
+async function mcCancelarReserva(id){
+  if(mc.cancelando)return;
+  var r=mc.reservas.filter(function(x){return x.reserva_id===id;})[0];
+  var que=r?'tu reserva de los '+r.dia+' '+r.horario:'esta reserva';
+  if(!confirm('¿Cancelar '+que+'? Dejarás de tener cupo en este bloque todas las semanas.'))return;
+  mc.cancelando=true;
+  try{
+    await apiRequest('/reservas/'+id,{method:'DELETE'});
+    lndToast('Reserva cancelada');
+  }catch(e){
+    if(e.message!=='Sesión expirada')lndToast(e.message||'No se pudo cancelar la reserva','err');
+  }finally{
+    mc.cancelando=false;
+  }
+  await mcCargarReservas();
+}
+
+// ── Asistencia ──
+async function mcCargarAsistencia(){
+  try{
+    mc.asistencia=await apiRequest('/mi-cuenta/asistencia');
+    mcPintarAsistencia();
+  }catch(e){
+    if(e.message==='Sesión expirada')return;
+    mcEl('mcAsistencia').innerHTML='<p class="mc-muted">No pudimos cargar tu asistencia.</p>';
+  }
+}
+
+function mcPintarAsistencia(){
+  var a=mc.asistencia;
+  var tiles='<div class="mc-lifts two"><div class="mc-lift"><small>Este mes</small><strong>'+esc(a.mes)+'</strong><span>'+(a.mes===1?'clase':'clases')+'</span></div>'
+    +'<div class="mc-lift"><small>Total</small><strong>'+esc(a.total)+'</strong><span>'+(a.total===1?'clase':'clases')+'</span></div></div>';
+  if(!a.asistencias.length){
+    mcEl('mcAsistencia').innerHTML=tiles+'<p class="mc-muted">Aún no registras asistencias. Cuando el equipo marque tu asistencia a un bloque, aparecerá aquí.</p>';
+    return;
+  }
+  var lista=mc.asistTodas?a.asistencias:a.asistencias.slice(0,8);
+  var html=tiles+lista.map(function(x){
+    return '<div class="mc-row"><div class="mc-row-main"><strong>'+esc(formatFechaCL(x.fecha))+'</strong>'
+      +'<span>'+esc(x.dia)+' · '+esc(x.horario)+(x.disciplina?' · '+esc(x.disciplina):'')+'</span></div>'
+      +'<span class="mc-badge ok">Asististe</span></div>';
+  }).join('');
+  if(a.asistencias.length>8){
+    html+='<button class="mc-btn-ghost" style="margin-top:.8rem" onclick="mcToggleAsistencia()">'
+      +(mc.asistTodas?'Ver menos':'Ver las últimas '+a.asistencias.length)+'</button>';
+  }
+  mcEl('mcAsistencia').innerHTML=html;
+}
+
+function mcToggleAsistencia(){mc.asistTodas=!mc.asistTodas;mcPintarAsistencia();}
 
 // ── Pagos ──
 async function mcCargarPagos(){
