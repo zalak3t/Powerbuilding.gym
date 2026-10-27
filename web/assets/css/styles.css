@@ -1,4 +1,4 @@
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --pink:#E91E8C;--pink2:#FF6BB5;--gold:#F5A623;--gold2:#F5C518;
   --dark:#080808;--dark2:#0f0f0f;--dark3:#181818;--dark4:#222;
@@ -12,7 +12,7 @@
   --red:#ef4444;--red-dim:rgba(239,68,68,.12);
   --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
 }
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;background:#080808}
 body{font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
 
 /* ═══════════════════════════════════
@@ -770,3 +770,30 @@ body.mc-body{background:var(--dark);color:var(--light);min-height:100vh;line-hei
 .btn-grad.link{display:block;text-align:center;text-decoration:none}
 .mc-lifts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .mc-link.danger{color:#f87171;padding:8px 0}
+
+/* ── Bloque 9: app instalada y áreas seguras del iPhone ──
+   Con viewport-fit=cover el contenido llega al borde de la pantalla: los insets valen 0 en la mayoría
+   de los equipos y en modo vertical, así que estas reglas no cambian nada donde no hay muesca. */
+nav{left:env(safe-area-inset-left);right:env(safe-area-inset-right)}
+#landing,.mc-body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+
+@media (display-mode: standalone){
+  html,body{overscroll-behavior-y:none}
+  nav{height:calc(60px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
+  .carousel{margin-top:calc(60px + env(safe-area-inset-top));height:calc(100vh - 60px - env(safe-area-inset-top))}
+  .mc-head{height:calc(56px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
+  .mc-chips{top:calc(56px + env(safe-area-inset-top))}
+  .mc-card{scroll-margin-top:calc(120px + env(safe-area-inset-top))}
+  .mc-wrap{padding-bottom:calc(3rem + env(safe-area-inset-bottom))}
+  footer{padding-bottom:calc(2.5rem + env(safe-area-inset-bottom))}
+  .lnd-toast,.toast-wrap{bottom:calc(24px + env(safe-area-inset-bottom))}
+  .atopbar{height:calc(52px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
+  .sidebar{padding-top:calc(12px + env(safe-area-inset-top))}
+}
+@media (display-mode: standalone) and (max-width: 900px){
+  nav{height:calc(56px + env(safe-area-inset-top))}
+  .carousel{margin-top:calc(56px + env(safe-area-inset-top));height:calc(100svh - 56px - env(safe-area-inset-top))}
+}
+@media (display-mode: standalone) and (max-width: 768px){
+  .toast-wrap{bottom:calc(16px + env(safe-area-inset-bottom))}
+}
