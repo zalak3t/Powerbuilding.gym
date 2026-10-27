@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex"/>
 <title>Resultado del pago · Powerbuilding.gym</title>
-<link rel="stylesheet" href="assets/css/styles.css"/>
+<link rel="stylesheet" href="assets/css/styles.css?v=b8"/>
 <style>
   body{background:var(--dark);color:var(--light);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
   .res-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -103,7 +103,7 @@
       if (t.estado === 'autorizada') {
         pintar(true, '¡Pago exitoso!', 'Tu plan quedó activo. Te enviamos el comprobante por correo.');
         detalle(t);
-        acciones((t.documento_disponible ? '<button class="btn-grad" onclick="descargar()">Descargar comprobante</button>' : '') + '<a class="res-ghost" href="index.html">Volver al inicio</a>');
+        acciones((t.documento_disponible ? '<button class="btn-grad" onclick="descargar()">Descargar comprobante</button>' : '') + '<a class="res-ghost" href="mi-cuenta.html#pagos">Ir a Mi cuenta</a><a class="res-ghost" href="index.html">Volver al inicio</a>');
       } else if (t.estado === 'rechazada') {
         pintar(false, 'Pago rechazado', 'No se realizó ningún cobro. Puedes intentarlo nuevamente con otro medio de pago.');
         acciones(reintentar);

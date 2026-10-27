@@ -20,7 +20,8 @@ async function doRegister(){
   var err=document.getElementById('rErr'),ok=document.getElementById('rOk');
   err.classList.remove('show'); ok.classList.remove('show');
   if(!name||!email||!pass){err.textContent='Completa todos los campos obligatorios';err.classList.add('show');return;}
-  if(pass.length<8){err.textContent='Mínimo 8 caracteres';err.classList.add('show');return;}
+  var passErr=pwError(pass);
+  if(passErr){err.textContent=passErr;err.classList.add('show');return;}
   if(!document.getElementById('rConsent').checked){err.textContent='Debes aceptar la política de privacidad';err.classList.add('show');return;}
   try {
     await apiRequest('/auth/register',{method:'POST',body:JSON.stringify({nombre:name,email:email,telefono:phone,password:pass})});
@@ -88,6 +89,12 @@ function handleNav(){
 function updateNav(){
   var b=document.getElementById('navBtn');
   b.textContent=curUser?(curUser.nombre||curUser.name||'').split(' ')[0]+' · Salir':'Iniciar sesión';
+  // "Mi cuenta" solo para alumnos; display explícito para que también se vea en móvil (el CSS oculta los demás enlaces)
+  var esAlumno=!!curUser&&curUser.rol==='alumno';
+  var li=document.getElementById('navCuentaLi');
+  if(li)li.style.display=esAlumno?'list-item':'none';
+  var nav=document.querySelector('#landing nav');
+  if(nav)nav.classList.toggle('has-cuenta',esAlumno);
   if(typeof actualizarBotonPagar==='function')actualizarBotonPagar();
 }
 

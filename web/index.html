@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Powerbuilding.gym</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="assets/css/styles.css?v=b7"/>
+<link rel="stylesheet" href="assets/css/styles.css?v=b8"/>
 </head>
 <body>
 
@@ -34,7 +34,8 @@
       <div class="field"><label>Nombre completo</label><input type="text" id="rName" placeholder="Tu nombre"/></div>
       <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="tu@email.com"/></div>
       <div class="field"><label>Teléfono</label><input type="tel" id="rPhone" placeholder="+56 9 xxxx xxxx"/></div>
-      <div class="field"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 8 caracteres"/></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 10 caracteres" autocomplete="new-password" oninput="pwActualizar('rPass','rPassMeter')"/></div>
+      <div id="rPassMeter" class="pw-meter" aria-live="polite"></div>
       <label class="consent"><input type="checkbox" id="rConsent"/><span>He leído y acepto la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a> y el tratamiento de mis datos personales.</span></label>
       <div class="ferr" id="rErr"></div>
       <div class="fok" id="rOk">¡Cuenta creada! Inicia sesión.</div>
@@ -217,6 +218,7 @@
       <li><a href="#nosotros">Nosotros</a></li>
       <li><a href="#horarios">Agenda</a></li>
       <li><a href="#contacto">Contacto</a></li>
+      <li id="navCuentaLi" style="display:none"><a class="nav-pill" href="mi-cuenta.html">Mi cuenta</a></li>
       <li id="navPagarLi" style="display:none"><button class="nav-pill" onclick="openPagar()">Pagar mi plan</button></li>
       <li><button class="nav-pill" id="navBtn" onclick="handleNav()">Iniciar sesión</button></li>
     </ul>
@@ -666,6 +668,7 @@
 <script src="assets/js/admin-core.js"></script>
 <script src="assets/js/landing.js"></script>
 <script src="assets/js/pagos-online.js?v=b7"></script>
-<script src="assets/js/auth.js?v=b7"></script>
+<script src="assets/js/password-ui.js?v=b8"></script>
+<script src="assets/js/auth.js?v=b8"></script>
 </body>
 </html>

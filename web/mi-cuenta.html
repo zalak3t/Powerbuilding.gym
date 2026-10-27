@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<title>Mi cuenta · Powerbuilding.gym</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="assets/css/styles.css?v=b8"/>
+</head>
+<body class="mc-body">
+
+<div class="lnd-toast" id="lndToast"></div>
+
+<header class="mc-head">
+  <a class="nav-logo" href="index.html">
+    <div class="logo-circle-sm">PB</div>
+    <div class="logo-text"><span class="gt">Powerbuilding</span><small>.GYM</small></div>
+  </a>
+  <div class="mc-user">
+    <span id="mcHeadAv"></span>
+    <button class="nav-pill" id="mcSalir" onclick="mcSalir()">Salir</button>
+  </div>
+</header>
+
+<nav class="mc-chips" aria-label="Secciones de Mi cuenta">
+  <a href="#perfil">Perfil</a>
+  <a href="#membresia">Membresía</a>
+  <a href="#marcas">Marcas</a>
+  <a href="#pagos">Pagos</a>
+  <a href="#seguridad">Seguridad</a>
+</nav>
+
+<main class="mc-wrap">
+  <div class="mc-alert" id="mcAlert" role="alert"></div>
+
+  <div class="mc-grid">
+
+    <!-- PERFIL -->
+    <section class="mc-card" id="perfil">
+      <h2>Mi perfil</h2>
+      <div class="mc-ident">
+        <span id="mcPerfilAv"></span>
+        <div>
+          <strong id="mcPerfilNombre">Cargando…</strong>
+          <span class="mc-muted" id="mcPerfilEmail"></span>
+        </div>
+      </div>
+      <div class="field"><label for="mcNombre">Nombre completo</label><input type="text" id="mcNombre" maxlength="100" autocomplete="name"/></div>
+      <div class="field"><label for="mcTelefono">Teléfono</label><input type="tel" id="mcTelefono" maxlength="20" placeholder="+56 9 xxxx xxxx" autocomplete="tel"/></div>
+      <div class="field"><label for="mcEmail">Correo</label><input type="email" id="mcEmail" readonly/></div>
+      <p class="mc-muted" style="margin:-.3rem 0 .6rem">El correo es tu usuario para iniciar sesión y no se cambia desde aquí.</p>
+      <div class="ferr" id="mcPerfilErr"></div>
+      <button class="btn-grad" id="mcPerfilBtn" onclick="mcGuardarPerfil()">Guardar cambios</button>
+    </section>
+
+    <!-- MEMBRESÍA -->
+    <section class="mc-card" id="membresia">
+      <h2>Mi membresía</h2>
+      <div id="mcMembresia"><p class="mc-muted">Cargando…</p></div>
+      <div id="mcPagarBox"></div>
+    </section>
+
+    <!-- MARCAS -->
+    <section class="mc-card wide" id="marcas">
+      <h2>Mis marcas</h2>
+      <p class="mc-muted" style="margin:-.5rem 0 1rem">Son marcas declaradas por ti. Tu entrenador puede verlas.</p>
+      <div class="mc-lifts" id="mcLifts"></div>
+      <div class="mc-chart" id="mcChartBox" style="display:none"><canvas id="mcChart" aria-label="Progreso de tus marcas"></canvas></div>
+
+      <h3 class="mc-h3">Registrar una marca</h3>
+      <div class="mc-form-marca">
+        <div class="field"><label for="mcMarcaEj">Ejercicio</label>
+          <select id="mcMarcaEj" onchange="mcAjustarKg()">
+            <option value="sentadilla">Sentadilla</option>
+            <option value="banca">Banca</option>
+            <option value="peso_muerto">Peso muerto</option>
+          </select></div>
+        <div class="field"><label for="mcMarcaKg">Peso (kg)</label><input type="number" id="mcMarcaKg" inputmode="decimal" step="0.5" min="20" max="600" placeholder="Ej: 140"/></div>
+        <div class="field full"><label for="mcMarcaFecha">Fecha</label><input type="date" id="mcMarcaFecha"/></div>
+      </div>
+      <div class="ferr" id="mcMarcaErr"></div>
+      <button class="btn-grad" id="mcMarcaBtn" onclick="mcGuardarMarca()">Registrar marca</button>
+
+      <h3 class="mc-h3">Mi historial</h3>
+      <div id="mcHistorial"></div>
+    </section>
+
+    <!-- PAGOS -->
+    <section class="mc-card" id="pagos">
+      <h2>Mis pagos</h2>
+      <div id="mcPagos"><p class="mc-muted">Cargando…</p></div>
+    </section>
+
+    <!-- SEGURIDAD -->
+    <section class="mc-card" id="seguridad">
+      <h2>Seguridad</h2>
+      <div class="field"><label for="mcPassActual">Contraseña actual</label><input type="password" id="mcPassActual" autocomplete="current-password"/></div>
+      <div class="field"><label for="mcPassNueva">Contraseña nueva</label><input type="password" id="mcPassNueva" autocomplete="new-password" oninput="pwActualizar('mcPassNueva','mcPassMeter')"/></div>
+      <div id="mcPassMeter" class="pw-meter" aria-live="polite"></div>
+      <div class="field"><label for="mcPassRepite">Repite la contraseña nueva</label><input type="password" id="mcPassRepite" autocomplete="new-password"/></div>
+      <div class="ferr" id="mcPassErr"></div>
+      <button class="btn-grad" id="mcPassBtn" onclick="mcCambiarPassword()">Cambiar contraseña</button>
+    </section>
+
+  </div>
+</main>
+
+<!-- PAGO EN LÍNEA -->
+<div class="overlay" id="mcPayOverlay" onclick="if(event.target===this)mcCerrarPago()">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="mcCerrarPago()" aria-label="Cerrar">×</button>
+    <h3 style="margin-bottom:.4rem">Pagar / renovar mi plan</h3>
+    <div class="legal-note" id="mcPayMembresia" style="text-align:left;margin:.2rem 0 .9rem"></div>
+    <div id="mcPayPlanes"></div>
+    <div class="ferr" id="mcPayErr"></div>
+    <button class="btn-grad" id="mcPayBtn" onclick="mcIniciarPago()">Pagar con Webpay</button>
+    <p class="legal-note">Serás redirigido a Webpay (Transbank) para completar el pago de forma segura. Al terminar recibirás tu comprobante por correo.</p>
+  </div>
+</div>
+
+<script src="assets/js/helpers.js?v=b8"></script>
+<script src="assets/js/toast.js?v=b8"></script>
+<script>
+  var PB_HOST = window.location.hostname;
+  window.API_BASE_URL = (PB_HOST === 'localhost' || PB_HOST === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : 'https://powerbuildinggym-production.up.railway.app/api';
+</script>
+<script src="assets/js/api.js?v=b8"></script>
+<script src="assets/js/password-ui.js?v=b8"></script>
+<script src="assets/js/mi-cuenta.js?v=b8"></script>
+</body>
+</html>
