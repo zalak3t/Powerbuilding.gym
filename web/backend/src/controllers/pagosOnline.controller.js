@@ -1,6 +1,7 @@
 const svc = require('../services/pagosOnline.service');
 const { getClienteById } = require('../services/clientes.service');
 const { pagosHabilitados, proveedorPagos, frontendUrl } = require('../config/pagos');
+const { mercadopagoHabilitado } = require('../services/mercadopago.service');
 const v = require('../utils/validate');
 
 const ESTADOS = ['iniciada', 'autorizada', 'rechazada', 'anulada', 'expirada'];
@@ -15,7 +16,10 @@ function vista(t) {
 
 // GET /api/pagos-online/estado
 function estado(req, res) {
-  res.json({ ok: true, habilitado: pagosHabilitados(), proveedor: proveedorPagos() });
+  const metodos = [];
+  if (pagosHabilitados()) metodos.push('webpay');
+  if (mercadopagoHabilitado()) metodos.push('mercadopago');
+  res.json({ ok: true, habilitado: metodos.length > 0, metodos, proveedor: proveedorPagos() });
 }
 
 // GET /api/pagos-online/planes (alumno)
@@ -36,16 +40,22 @@ const ERRORES_INICIAR = {
   PLAN_INACTIVE: [409, 'El plan está inactivo; elige un plan activo'],
   PLAN_SIN_PRECIO: [409, 'El plan no tiene precio para pago en línea'],
   PROVEEDOR: [502, 'No se pudo iniciar el pago. Intenta nuevamente en unos minutos'],
+  METODO_NO_DISPONIBLE: [503, 'El método de pago no está disponible'],
 };
 
 // POST /api/pagos-online/iniciar   body: { plan_id }
 async function iniciar(req, res) {
-  if (!pagosHabilitados()) return res.status(503).json({ ok: false, error: 'El pago en línea no está disponible' });
   if (req.user.rol !== 'alumno') return res.status(403).json({ ok: false, error: 'Solo los alumnos pueden pagar en línea' });
 
   const body = req.body || {};
   const planId = v.parsePositiveInt(body.plan_id);
   if (!planId) return res.status(400).json({ ok: false, error: 'plan_id es obligatorio y debe ser válido' });
+  const metodo = body.metodo === undefined ? 'webpay' : body.metodo;
+  if (metodo !== 'webpay' && metodo !== 'mercadopago') {
+    return res.status(400).json({ ok: false, error: 'metodo debe ser webpay o mercadopago' });
+  }
+  if (metodo === 'webpay' && !pagosHabilitados()) return res.status(503).json({ ok: false, error: 'Webpay no está disponible' });
+  if (metodo === 'mercadopago' && !mercadopagoHabilitado()) return res.status(503).json({ ok: false, error: 'Mercado Pago no está disponible' });
 
   const cliente = await svc.getClientePorUsuario(req.user.id);
   if (!cliente) return res.status(404).json({ ok: false, error: 'Cliente no encontrado para este usuario' });
@@ -55,12 +65,12 @@ async function iniciar(req, res) {
   }
   if (cliente.estado !== 'activo') return res.status(403).json({ ok: false, error: 'Cliente no habilitado para pagar' });
 
-  const r = await svc.iniciarPago({ cliente, planId });
+  const r = await svc.iniciarPago({ cliente, planId, metodo });
   if (r.error) {
-    const [status, error] = ERRORES_INICIAR[r.error];
+    const [status, error] = ERRORES_INICIAR[r.error] || [503, 'El método de pago no está disponible'];
     return res.status(status).json({ ok: false, error });
   }
-  return res.status(201).json({ ok: true, id: r.id, url: r.url, token: r.token });
+  return res.status(201).json({ ok: true, id: r.id, url: r.url, token: r.token, metodo: r.metodo, redirect: r.redirect });
 }
 
 // GET|POST /api/pagos-online/retorno  (lo invoca el navegador al volver de Webpay)
@@ -73,6 +83,36 @@ async function retorno(req, res) {
     console.error('[pagos-online] error al procesar el retorno:', e && e.message);
   }
   return res.redirect(303, frontendUrl() + '/pago-resultado.html?tx=' + (txId || 0));
+}
+
+// Mercado Pago redirige al alumno aquí al terminar. El pago se confirma consultando su API;
+// el parámetro payment_id solo indica qué consultar, no se confía en él.
+const PAYMENT_ID = /^\d{1,20}$/;
+async function mpRetorno(req, res) {
+  const paymentId = PAYMENT_ID.test(String(req.query.payment_id || req.query.collection_id || '')) ? String(req.query.payment_id || req.query.collection_id) : null;
+  let txId = null;
+  try {
+    if (paymentId) txId = (await svc.confirmarMercadoPago(paymentId)).txId;
+  } catch (e) {
+    console.error('[pagos-online] error al confirmar Mercado Pago (retorno):', e && e.message);
+  }
+  return res.redirect(303, frontendUrl() + '/pago-resultado.html?tx=' + (txId || 0));
+}
+
+// Notificación de Mercado Pago (webhook). Siempre responde 200 para que no reintente sin fin;
+// lo que no sea un pago conocido se ignora. Nada de lo recibido se da por cierto sin consultar la API.
+async function mpNotificacion(req, res) {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const tipo = String(req.query.type || req.query.topic || body.type || body.topic || '');
+    const id = (req.query['data.id'] !== undefined ? req.query['data.id'] : (body.data && body.data.id));
+    if (tipo === 'payment' && PAYMENT_ID.test(String(id || ''))) {
+      await svc.confirmarMercadoPago(String(id));
+    }
+  } catch (e) {
+    console.error('[pagos-online] error al procesar notificación de Mercado Pago:', e && e.message);
+  }
+  return res.status(200).json({ ok: true });
 }
 
 // Carga la transaccion y valida acceso: alumno solo la suya. -> transaccion o null (ya respondio).
@@ -138,4 +178,4 @@ async function reintentarDocumento(req, res) {
   });
 }
 
-module.exports = { estado, planes, iniciar, retorno, obtener, documento, listar, reintentarDocumento };
+module.exports = { estado, planes, iniciar, retorno, mpRetorno, mpNotificacion, obtener, documento, listar, reintentarDocumento };

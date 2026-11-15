@@ -43,7 +43,7 @@ function generarComprobante(datos) {
         ['Correo', datos.clienteEmail],
         ['Plan', datos.planNombre],
         ['Período', fechaCorta(datos.periodoDesde) + ' al ' + fechaCorta(datos.periodoHasta)],
-        ['Medio de pago', datos.metodo === 'webpay' ? 'Webpay Plus' : String(datos.metodo || '')],
+        ['Medio de pago', ({ webpay: 'Webpay Plus', mercadopago: 'Mercado Pago' })[datos.metodo] || String(datos.metodo || '')],
       ];
       if (datos.autorizacion) filas.push(['Código de autorización', String(datos.autorizacion)]);
       if (datos.ordenCompra) filas.push(['Orden de compra', String(datos.ordenCompra)]);
