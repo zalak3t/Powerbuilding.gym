@@ -1,5 +1,7 @@
 // ══ PAGO EN LÍNEA (alumno, Webpay Plus) ══
 var pagoOnlineHabilitado=null; // null = aún no consultado
+var pagoMetodosDisponibles=[]; // ['webpay', 'mercadopago'] según el servidor
+var NOMBRES_METODO={webpay:'Webpay (tarjetas)',mercadopago:'Mercado Pago'};
 var pagarPendiente=new URLSearchParams(window.location.search).get('pagar')==='1'; // viene de {{link_pago}}
 var pagarAuthAbierto=false;
 var pagando=false;
@@ -20,6 +22,7 @@ async function actualizarBotonPagar(){
       var res=await fetch(API_BASE_URL+'/pagos-online/estado');
       var d=await res.json();
       pagoOnlineHabilitado=!!d.habilitado;
+      pagoMetodosDisponibles=Array.isArray(d.metodos)?d.metodos:[];
     } catch(e) { pagoOnlineHabilitado=false; }
   }
   li.style.display=pagoOnlineHabilitado?'':'none';
@@ -54,6 +57,13 @@ async function openPagar(){
       document.getElementById('payBtn').disabled=true;
       return;
     }
+    var mets=pagoMetodosDisponibles;
+    document.getElementById('payMetodos').innerHTML=mets.length>1
+      ?'<div class="legal-note" style="text-align:left;margin-bottom:.3rem">Elige cómo pagar:</div>'+mets.map(function(m,i){
+        return '<label class="pay-plan"><input type="radio" name="payMetodo" value="'+m+'"'+(i===0?' checked':'')+'/><span>'+esc(NOMBRES_METODO[m]||m)+'</span></label>';
+      }).join('')
+      :'';
+    actualizarTextoPagar();
     document.getElementById('payPlanes').innerHTML=planes.map(function(p,i){
       return '<label class="pay-plan"><input type="radio" name="payPlan" value="'+p.id+'"'+(i===0?' checked':'')+'/>'
         +'<span><strong>'+esc(p.nombre)+'</strong> — '+esc(formatCLP(p.precio))
@@ -66,7 +76,23 @@ async function openPagar(){
   }
 }
 
-// Crea la transacción y envía el formulario POST a Webpay con token_ws (sin iframe).
+// Texto del botón y de la nota según el método elegido.
+function metodoElegido(){
+  var sel=document.querySelector('input[name="payMetodo"]:checked');
+  return sel?sel.value:(pagoMetodosDisponibles[0]||'webpay');
+}
+function actualizarTextoPagar(){
+  var m=metodoElegido();
+  var btn=document.getElementById('payBtn');
+  if(btn&&!pagando)btn.textContent='Pagar con '+(NOMBRES_METODO[m]||m);
+  var nota=document.getElementById('payNota');
+  if(nota)nota.textContent=m==='mercadopago'
+    ?'Serás redirigido a Mercado Pago para completar el pago. Al terminar recibirás tu comprobante por correo.'
+    :'Serás redirigido a Webpay (Transbank) para completar el pago de forma segura. Al terminar recibirás tu comprobante por correo.';
+}
+document.addEventListener('change',function(e){if(e.target&&e.target.name==='payMetodo')actualizarTextoPagar();});
+
+// Crea la transacción. Webpay: formulario POST con token_ws. Mercado Pago: redirección a su checkout.
 async function iniciarPagoOnline(){
   if(pagando)return;
   var err=document.getElementById('payErr');
@@ -75,10 +101,12 @@ async function iniciarPagoOnline(){
   if(!sel){err.textContent='Selecciona un plan';err.classList.add('show');return;}
   pagando=true;
   var btn=document.getElementById('payBtn');
-  btn.disabled=true;btn.textContent='Redirigiendo a Webpay...';
+  var metodo=metodoElegido();
+  btn.disabled=true;btn.textContent='Redirigiendo...';
   try {
-    var data=await apiRequest('/pagos-online/iniciar',{method:'POST',body:JSON.stringify({plan_id:parseInt(sel.value,10)})});
+    var data=await apiRequest('/pagos-online/iniciar',{method:'POST',body:JSON.stringify({plan_id:parseInt(sel.value,10),metodo:metodo})});
     if(!data.url||!/^https:\/\//.test(data.url)||!data.token)throw new Error('Respuesta de pago inválida');
+    if(data.redirect){window.location.href=data.url;return;}
     var f=document.createElement('form');
     f.method='POST';f.action=data.url;
     var i=document.createElement('input');
@@ -88,7 +116,7 @@ async function iniciarPagoOnline(){
     f.submit();
   } catch(e) {
     err.textContent=e.message||'No se pudo iniciar el pago';err.classList.add('show');
-    btn.disabled=false;btn.textContent='Pagar con Webpay';
+    btn.disabled=false;actualizarTextoPagar();
     pagando=false;
   }
 }
