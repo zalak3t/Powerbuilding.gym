@@ -91,6 +91,7 @@ Abrir la URL de Netlify y verificar cada ítem con DevTools → Network abierto:
 ### Auth
 - [ ] Login como admin (con el administrador creado con `npm run create-admin`)
 - [ ] Registro de un alumno nuevo e inicio de sesión con esa cuenta
+- [ ] Registro con un correo que ya tiene ficha creada por el gimnasio: debe responder "te enviamos un correo", llegar el enlace (revisar spam) y, al abrirlo, quedar la cuenta activa con la ficha enlazada. Requiere `EMAIL_PROVIDER=brevo`, `EMAIL_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` configuradas en Railway
 - [ ] Logout y re-login
 - [ ] Token guardado en `localStorage` como `pb_token`
 
