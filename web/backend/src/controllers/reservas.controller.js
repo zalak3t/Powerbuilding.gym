@@ -1,7 +1,6 @@
 const {
   getClienteActivoByUserId,
-  getBloqueCap,
-  createReserva,
+  reservarConCupo,
   getReservaById,
   deleteReserva,
 } = require('../services/reservas.service');
@@ -23,21 +22,12 @@ async function reservar(req, res) {
     return res.status(403).json({ ok: false, error: 'Cliente no habilitado para reservar' });
   }
 
-  // Verificar bloque
-  const bloque = await getBloqueCap(bloque_id);
-  if (!bloque) {
-    return res.status(404).json({ ok: false, error: 'Bloque no encontrado' });
-  }
-  if (bloque.estado !== 'activo') {
-    return res.status(409).json({ ok: false, error: 'El bloque está suspendido' });
-  }
-  if (bloque.inscritos >= bloque.capacidad) {
-    return res.status(409).json({ ok: false, error: 'El bloque está lleno' });
-  }
-
-  // Crear reserva (la constraint UNIQUE en BD maneja el duplicado)
+  // Crear la reserva con control de cupo atómico (la constraint UNIQUE en BD maneja el duplicado)
   try {
-    const reserva = await createReserva({ clienteId: cliente.id, bloqueId: bloque_id });
+    const { reserva, error } = await reservarConCupo({ clienteId: cliente.id, bloqueId: bloque_id });
+    if (error === 'BLOQUE_NOT_FOUND') return res.status(404).json({ ok: false, error: 'Bloque no encontrado' });
+    if (error === 'BLOQUE_SUSPENDIDO') return res.status(409).json({ ok: false, error: 'El bloque está suspendido' });
+    if (error === 'BLOQUE_LLENO') return res.status(409).json({ ok: false, error: 'El bloque está lleno' });
     // R.18: confirmación por correo, sin esperar y sin afectar la respuesta.
     notificarReserva(reserva.id).catch(() => {});
     return res.status(201).json({ ok: true, message: 'Reserva creada correctamente', reserva });
