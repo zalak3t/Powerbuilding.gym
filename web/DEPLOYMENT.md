@@ -13,11 +13,17 @@
    ```bash
    psql $DATABASE_URL -f web/backend/src/db/schema.sql
    ```
-6. Ejecutar el seed (usuarios y bloques iniciales):
+6. Ejecutar el seed (solo bloques horarios iniciales; no crea usuarios ni contraseñas):
    ```bash
    psql $DATABASE_URL -f web/backend/src/db/seed.sql
    ```
-7. Verificar que las tablas existan:
+7. Crear el primer administrador. Las credenciales se pasan por variables de entorno, nunca se escriben en el repositorio ni en archivos versionados:
+   ```bash
+   cd web/backend
+   ADMIN_EMAIL="correo@ejemplo.cl" ADMIN_PASSWORD="<clave de al menos 10 caracteres, con mayúscula, minúscula y número>" npm run create-admin
+   ```
+   El script valida la fortaleza de la clave, guarda solo su hash (bcrypt) y no sobrescribe un usuario que ya exista.
+8. Verificar que las tablas existan:
    ```sql
    \dt
    ```
@@ -45,9 +51,8 @@
 5. Probar los endpoints:
    ```
    GET https://TU-BACKEND.up.railway.app/api/ping
-   GET https://TU-BACKEND.up.railway.app/api/db-test
    ```
-   Ambos deben responder `{ ok: true, ... }`.
+   Debe responder `{ ok: true, ... }`. El diagnóstico de base de datos (`GET /api/db-test`) requiere sesión de administrador (cabecera `Authorization: Bearer <token>`).
 6. Copiar la URL pública del backend (ej. `https://powerbuilding-api.up.railway.app`).
 
 ---
@@ -84,8 +89,8 @@
 Abrir la URL de Netlify y verificar cada ítem con DevTools → Network abierto:
 
 ### Auth
-- [ ] Login como admin (`admin@powerbuilding.gym` / contraseña del seed)
-- [ ] Login como alumno (`carlos@gmail.com` / contraseña del seed)
+- [ ] Login como admin (con el administrador creado con `npm run create-admin`)
+- [ ] Registro de un alumno nuevo e inicio de sesión con esa cuenta
 - [ ] Logout y re-login
 - [ ] Token guardado en `localStorage` como `pb_token`
 

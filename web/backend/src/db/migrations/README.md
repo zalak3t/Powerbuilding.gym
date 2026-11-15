@@ -1,6 +1,6 @@
 # Migraciones
 
-Cambios de esquema posteriores a `schema.sql`. **`schema.sql` y `seed.sql` no se modifican.**
+Cambios de esquema posteriores a `schema.sql`. **`schema.sql` no se modifica.** El `seed.sql` solo contiene bloques horarios iniciales (sin usuarios ni claves).
 
 ## Convenciones
 - Archivos numerados en orden: `001_descripcion.sql`, `002_descripcion.sql`, ...
