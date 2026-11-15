@@ -2,6 +2,7 @@ const express = require('express');
 const authMiddleware = require('../middlewares/auth');
 const adminOnly = require('../middlewares/adminOnly');
 const c = require('../controllers/pagosOnline.controller');
+const { pagoIniciarLimiter } = require('../middlewares/rateLimit');
 
 const router = express.Router();
 const admin = [authMiddleware, adminOnly];
@@ -9,7 +10,7 @@ const admin = [authMiddleware, adminOnly];
 // Rutas estaticas antes que /:id
 router.get('/estado', c.estado);
 router.get('/planes', authMiddleware, c.planes);
-router.post('/iniciar', authMiddleware, c.iniciar);
+router.post('/iniciar', authMiddleware, pagoIniciarLimiter, c.iniciar);
 
 // Webpay vuelve por GET o por POST (form-urlencoded): solo aqui se parsea urlencoded.
 const urlencoded = express.urlencoded({ extended: false, limit: '10kb' });
