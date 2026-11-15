@@ -1,6 +1,7 @@
 const { query } = require('../config/db');
 const { HOY_CL_SQL } = require('../utils/fechas');
 const { getPagosByCliente } = require('./pagos.service');
+const { withTransaction } = require('../utils/tx');
 
 // Membresía derivada: vence el MAX(periodo_hasta) de los pagos no anulados (fecha de Chile).
 // por_vencer = faltan 7 días o menos (vence_el - hoy <= 7); vigente incluye el día del vencimiento.
@@ -20,13 +21,15 @@ const MEMBRESIA_COLS = `
         ELSE 'vigente'
       END AS estado_membresia`;
 
-async function getClientes({ search } = {}) {
+// Por defecto la lista oculta las fichas eliminadas (anonimizadas); con soloEliminados se ven solo ellas.
+async function getClientes({ search, soloEliminados = false } = {}) {
   const params = [];
-  let where = '';
+  const conds = [soloEliminados ? "c.estado = 'eliminado'" : "c.estado <> 'eliminado'"];
   if (search) {
     params.push(`%${search}%`);
-    where = 'WHERE c.nombre ILIKE $1 OR c.email ILIKE $1';
+    conds.push('(c.nombre ILIKE $1 OR c.email ILIKE $1)');
   }
+  const where = `WHERE ${conds.join(' AND ')}`;
 
   const sql = `
     SELECT
@@ -126,12 +129,38 @@ async function updateClienteEstado(id, estado) {
   return result.rows[0] || null;
 }
 
+// "Eliminar" un cliente = anonimizar su ficha y borrar su cuenta de acceso.
+// - La ficha se conserva con sus pagos, comprobantes, reservas y asistencias (historial).
+// - Se borran sus datos personales: nombre, correo, teléfono, notas, foto, marcas y el correo
+//   guardado en el registro de notificaciones.
+// - Se borra la cuenta de `usuarios`, así el correo queda libre para volver a registrarse
+//   (cada registro nuevo crea una ficha nueva).
+// Devuelve { id } o null si la ficha no existe o ya estaba eliminada.
 async function deleteCliente(id) {
-  const result = await query(
-    'DELETE FROM clientes WHERE id=$1 RETURNING id',
-    [id]
-  );
-  return result.rows[0] || null;
+  return withTransaction(async (c) => {
+    const r = await c.query(
+      'SELECT id, usuario_id, estado FROM clientes WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    const ficha = r.rows[0];
+    if (!ficha || ficha.estado === 'eliminado') return null;
+
+    await c.query('DELETE FROM clientes_foto WHERE cliente_id = $1', [id]);
+    await c.query('DELETE FROM marcas WHERE cliente_id = $1', [id]);
+    await c.query(`UPDATE notificaciones_log SET destinatario = '(eliminado)' WHERE cliente_id = $1`, [id]);
+    await c.query(
+      `UPDATE clientes
+       SET nombre = $2, email = $3, telefono = NULL, notas = '',
+           usuario_id = NULL, estado = 'eliminado', actualizado_en = NOW()
+       WHERE id = $1`,
+      [id, `Cliente eliminado #${id}`, `eliminado-${id}@eliminado.invalid`]
+    );
+    // Solo cuentas de alumno: nunca se borra una cuenta de administrador desde aquí.
+    if (ficha.usuario_id) {
+      await c.query(`DELETE FROM usuarios WHERE id = $1 AND rol = 'alumno'`, [ficha.usuario_id]);
+    }
+    return { id };
+  });
 }
 
 module.exports = {
