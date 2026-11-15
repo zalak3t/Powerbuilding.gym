@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { reservaVigente } = require('../utils/reservasSql');
 
 async function getClienteActivoByUserId(userId) {
   const result = await query(
@@ -12,7 +13,7 @@ async function getBloqueCap(bloqueId) {
   const result = await query(
     `SELECT b.id, b.estado, b.capacidad, COUNT(r.id)::int AS inscritos
      FROM bloques b
-     LEFT JOIN reservas r ON r.bloque_id = b.id
+     LEFT JOIN reservas r ON r.bloque_id = b.id AND ${reservaVigente('r')}
      WHERE b.id = $1
      GROUP BY b.id`,
     [bloqueId]

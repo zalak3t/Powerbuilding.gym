@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { HOY_CL_SQL } = require('../utils/fechas');
+const { reservaVigente } = require('../utils/reservasSql');
 
 const DIAS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 function diaHoyEs() {
@@ -18,6 +19,7 @@ async function getResumenClientes() {
       COUNT(*) FILTER (WHERE estado='activo')::int             AS clientes_activos,
       COUNT(*) FILTER (WHERE estado IN ('bloqueado','suspendido'))::int AS clientes_bloqueados
     FROM clientes
+    WHERE estado <> 'eliminado'
   `);
   return r.rows[0];
 }
@@ -43,6 +45,7 @@ async function getResumenReservasAsistencias() {
     FROM reservas rv
     JOIN bloques b ON b.id = rv.bloque_id
     LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = ${HOY_CL_SQL}
+    WHERE ${reservaVigente('rv')}
   `, [dia]);
   return r.rows[0];
 }
@@ -55,7 +58,7 @@ async function getOcupacionGlobal() {
     ) AS ocupacion_global
     FROM bloques b
     LEFT JOIN (
-      SELECT bloque_id, COUNT(*)::int AS inscritos FROM reservas GROUP BY bloque_id
+      SELECT bloque_id, COUNT(*)::int AS inscritos FROM reservas r WHERE ${reservaVigente('r')} GROUP BY bloque_id
     ) ins ON ins.bloque_id = b.id
   `);
   return r.rows[0].ocupacion_global;
@@ -65,7 +68,7 @@ async function getOcupacionPorDia() {
   const r = await query(`
     SELECT b.dia, COUNT(rv.id)::int AS reservas
     FROM bloques b
-    LEFT JOIN reservas rv ON rv.bloque_id = b.id
+    LEFT JOIN reservas rv ON rv.bloque_id = b.id AND ${reservaVigente('rv')}
     GROUP BY b.dia
     ORDER BY ${ORDER_DIA}
   `);
@@ -80,7 +83,7 @@ async function getOcupacionPorBloque() {
       b.capacidad,
       COALESCE(ROUND(COUNT(rv.id)::float / NULLIF(b.capacidad,0) * 100)::int, 0) AS pct
     FROM bloques b
-    LEFT JOIN reservas rv ON rv.bloque_id = b.id
+    LEFT JOIN reservas rv ON rv.bloque_id = b.id AND ${reservaVigente('rv')}
     GROUP BY b.id
     ORDER BY pct DESC, ${ORDER_DIA}
     LIMIT 12
@@ -99,6 +102,7 @@ async function getActividadReciente() {
     JOIN clientes   c ON c.id = rv.cliente_id
     JOIN bloques    b ON b.id = rv.bloque_id
     LEFT JOIN asistencias a ON a.reserva_id = rv.id AND a.fecha = ${HOY_CL_SQL}
+    WHERE c.estado <> 'eliminado'
     ORDER BY rv.creado_en DESC
     LIMIT 6
   `);
@@ -173,7 +177,7 @@ async function getTasaAsistenciaGeneral() {
 async function getReservasPromedioPorCliente() {
   const r = await query(`
     SELECT COALESCE(ROUND(AVG(cnt)::numeric, 1)::float, 0) AS promedio
-    FROM (SELECT COUNT(*) AS cnt FROM reservas GROUP BY cliente_id) t
+    FROM (SELECT COUNT(*) AS cnt FROM reservas r WHERE ${reservaVigente('r')} GROUP BY cliente_id) t
   `);
   return r.rows[0].promedio;
 }

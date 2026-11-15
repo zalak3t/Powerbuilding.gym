@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { reservaVigente } = require('../utils/reservasSql');
 
 const ORDER_SQL = `ORDER BY
   ARRAY_POSITION(ARRAY['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'], b.dia),
@@ -28,7 +29,7 @@ async function getBloques({ dia, userId }) {
     FROM bloques b
     LEFT JOIN disciplinas d ON d.id = b.disciplina_id
     LEFT JOIN instructores i ON i.id = b.instructor_id
-    LEFT JOIN reservas r ON r.bloque_id = b.id
+    LEFT JOIN reservas r ON r.bloque_id = b.id AND ${reservaVigente('r')}
     ${userId ? `LEFT JOIN clientes c ON c.id = r.cliente_id` : ''}
     ${whereClause}
     GROUP BY b.id, d.id, i.id
@@ -67,7 +68,7 @@ async function getAdminBloques({ dia } = {}) {
     FROM bloques b
     LEFT JOIN disciplinas d ON d.id = b.disciplina_id
     LEFT JOIN instructores i ON i.id = b.instructor_id
-    LEFT JOIN reservas r ON r.bloque_id = b.id
+    LEFT JOIN reservas r ON r.bloque_id = b.id AND ${reservaVigente('r')}
     ${where}
     GROUP BY b.id, d.id, i.id
     ${ORDER_SQL}
@@ -83,7 +84,7 @@ async function getBloqueById(id) {
 
 async function getInscritosByBloqueId(id) {
   const result = await query(
-    'SELECT COUNT(id)::int AS inscritos FROM reservas WHERE bloque_id = $1',
+    `SELECT COUNT(r.id)::int AS inscritos FROM reservas r WHERE r.bloque_id = $1 AND ${reservaVigente('r')}`,
     [id]
   );
   return result.rows[0].inscritos;
