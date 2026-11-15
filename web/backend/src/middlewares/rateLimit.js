@@ -30,6 +30,13 @@ const registerLimiter = crearLimitador({
   mensaje: 'Demasiados registros desde esta conexión. Intenta nuevamente más tarde.',
 });
 
+// Confirmación de correo: 20 intentos por hora por IP (los tokens son largos y firmados).
+const verificarCorreoLimiter = crearLimitador({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  mensaje: 'Demasiados intentos de confirmación. Intenta nuevamente más tarde.',
+});
+
 // Inicio de pago en línea: 20 por 15 minutos por IP (evita crear transacciones en masa).
 const pagoIniciarLimiter = crearLimitador({
   windowMs: 15 * 60 * 1000,
@@ -37,4 +44,4 @@ const pagoIniciarLimiter = crearLimitador({
   mensaje: 'Demasiadas solicitudes de pago. Intenta nuevamente en unos minutos.',
 });
 
-module.exports = { loginLimiter, registerLimiter, pagoIniciarLimiter };
+module.exports = { loginLimiter, registerLimiter, verificarCorreoLimiter, pagoIniciarLimiter };
