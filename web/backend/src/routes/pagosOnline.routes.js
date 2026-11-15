@@ -9,6 +9,9 @@ const admin = [authMiddleware, adminOnly];
 
 // Rutas estaticas antes que /:id
 router.get('/estado', c.estado);
+// Mercado Pago: redireccion del alumno y webhook (publicos; el pago se confirma consultando su API).
+router.get('/mercadopago/retorno', c.mpRetorno);
+router.post('/mercadopago/notificacion', c.mpNotificacion);
 router.get('/planes', authMiddleware, c.planes);
 router.post('/iniciar', authMiddleware, pagoIniciarLimiter, c.iniciar);
 

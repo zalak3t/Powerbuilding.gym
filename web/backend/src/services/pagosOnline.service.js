@@ -5,6 +5,7 @@ const { query } = require('../config/db');
 const { withTransaction } = require('../utils/tx');
 const { HOY_CL_SQL, hoyChile } = require('../utils/fechas');
 const webpay = require('./webpay.service');
+const mp = require('./mercadopago.service');
 const { proveedorPagos, proveedorBoleta, backendPublicUrl } = require('../config/pagos');
 const { createPago, getPagoById } = require('./pagos.service');
 const { generarComprobante, folioComprobante, clp } = require('./comprobante.service');
@@ -68,14 +69,16 @@ async function listarPlanesActivos() {
 }
 
 /**
- * Crea la transaccion y la inicia en Webpay. Devuelve { id, url, token } o
- * { error: 'PLAN_NOT_FOUND' | 'PLAN_INACTIVE' | 'PLAN_SIN_PRECIO' | 'PROVEEDOR' }.
+ * Crea la transaccion y la inicia en el metodo elegido por el alumno ('webpay' | 'mercadopago').
+ * Devuelve { id, url, token, metodo, redirect } o { error: 'PLAN_NOT_FOUND' | 'PLAN_INACTIVE' | 'PLAN_SIN_PRECIO' | 'PROVEEDOR' | 'METODO_NO_DISPONIBLE' }.
  */
-async function iniciarPago({ cliente, planId }) {
-  const plan = (await query('SELECT id, precio, activo FROM planes WHERE id = $1', [planId])).rows[0];
+async function iniciarPago({ cliente, planId, metodo = 'webpay' }) {
+  const plan = (await query('SELECT id, nombre, precio, activo FROM planes WHERE id = $1', [planId])).rows[0];
   if (!plan) return { error: 'PLAN_NOT_FOUND' };
   if (!plan.activo) return { error: 'PLAN_INACTIVE' };
   if (!(plan.precio > 0)) return { error: 'PLAN_SIN_PRECIO' };
+  if (metodo === 'mercadopago') return iniciarMercadoPago({ cliente, plan });
+  if (metodo !== 'webpay') return { error: 'METODO_NO_DISPONIBLE' };
 
   const buyOrder = nuevoBuyOrder();
   const ins = await query(
@@ -94,7 +97,7 @@ async function iniciarPago({ cliente, planId }) {
     });
     if (!r || !r.token || !r.url) throw new Error('Respuesta incompleta del proveedor');
     await query('UPDATE transacciones_pago SET token = $1, actualizado_en = NOW() WHERE id = $2', [r.token, id]);
-    return { id, url: r.url, token: r.token };
+    return { id, url: r.url, token: r.token, metodo: 'webpay', redirect: false };
   } catch (e) {
     console.error('[pagos-online] no se pudo iniciar la transacción ' + id + ': ' + msg(e));
     await query(
@@ -103,6 +106,95 @@ async function iniciarPago({ cliente, planId }) {
     );
     return { error: 'PROVEEDOR' };
   }
+}
+
+// Mercado Pago: se crea la preferencia y el alumno es redirigido a su checkout.
+// La transaccion usa buy_order como external_reference, que es lo que devuelve su API al confirmar.
+async function iniciarMercadoPago({ cliente, plan }) {
+  if (!mp.mercadopagoHabilitado()) return { error: 'METODO_NO_DISPONIBLE' };
+  const buyOrder = nuevoBuyOrder();
+  const ins = await query(
+    `INSERT INTO transacciones_pago (cliente_id, plan_id, monto, proveedor, buy_order)
+     VALUES ($1, $2, $3, 'mercadopago', $4) RETURNING id`,
+    [cliente.id, plan.id, plan.precio, buyOrder]
+  );
+  const id = ins.rows[0].id;
+  try {
+    const base = backendPublicUrl();
+    const pref = await mp.crearPreferencia({
+      buyOrder,
+      titulo: 'Plan ' + plan.nombre + ' - Powerbuilding.gym',
+      monto: plan.precio,
+      backUrl: base + '/api/pagos-online/mercadopago/retorno',
+      notificationUrl: base + '/api/pagos-online/mercadopago/notificacion',
+    });
+    await query('UPDATE transacciones_pago SET token = $1, actualizado_en = NOW() WHERE id = $2', [pref.id, id]);
+    return { id, url: pref.url, token: pref.id, metodo: 'mercadopago', redirect: true };
+  } catch (e) {
+    console.error('[pagos-online] Mercado Pago: no se pudo iniciar la transacción ' + id + ': ' + msg(e));
+    await query(
+      `UPDATE transacciones_pago SET estado = 'rechazada', detalle = $1, finalizado_en = NOW(), actualizado_en = NOW() WHERE id = $2`,
+      ['No se pudo iniciar el pago con Mercado Pago', id]
+    );
+    return { error: 'PROVEEDOR' };
+  }
+}
+
+/**
+ * Confirma un pago de Mercado Pago consultando SU API (no confia en lo que llega por la notificacion
+ * ni en la redireccion). Idempotente: solo transiciona una transaccion 'iniciada' (FOR UPDATE).
+ * Devuelve { txId } (null si el pago no corresponde a ninguna transaccion nuestra).
+ */
+async function confirmarMercadoPago(paymentId) {
+  let pago;
+  try {
+    pago = await mp.obtenerPago(paymentId);
+  } catch (e) {
+    console.error('[pagos-online] Mercado Pago: no se pudo consultar el pago ' + paymentId + ': ' + msg(e));
+    return { txId: null };
+  }
+  if (!pago.external_reference) return { txId: null };
+
+  let pagoNuevo = null;
+  const resultado = await withTransaction(async (client) => {
+    const busca = await client.query(
+      `SELECT * FROM transacciones_pago WHERE buy_order = $1 AND proveedor = 'mercadopago' FOR UPDATE`,
+      [pago.external_reference]
+    );
+    const tx = busca.rows[0];
+    if (!tx) return { txId: null };
+    if (tx.estado !== 'iniciada') return { txId: tx.id }; // duplicado: no hace nada
+
+    const resp = { payment_id: pago.id, status: pago.status, status_detail: pago.status_detail, currency_id: pago.currency_id };
+    if (pago.status === 'rejected' || pago.status === 'cancelled') {
+      await cerrarTx(client, tx.id, 'rechazada', 'Pago rechazado o cancelado en Mercado Pago', resp);
+      return { txId: tx.id };
+    }
+    if (pago.status !== 'approved') {
+      // pending / in_process: se queda 'iniciada' hasta una notificacion final.
+      await client.query(`UPDATE transacciones_pago SET detalle = $1, actualizado_en = NOW() WHERE id = $2`,
+        ['Pago pendiente en Mercado Pago', tx.id]);
+      return { txId: tx.id };
+    }
+    if (pago.currency_id !== 'CLP' || pago.transaction_amount !== Number(tx.monto)) {
+      console.error('[pagos-online] Mercado Pago: el pago ' + pago.id + ' no coincide con la transacción ' + tx.id + '; revisar');
+      await cerrarTx(client, tx.id, 'rechazada', 'Los datos del pago no coinciden con la transacción', resp);
+      return { txId: tx.id };
+    }
+
+    const desde = await periodoDesdeCliente(client, tx.cliente_id);
+    const cr = await createPago({
+      clienteId: tx.cliente_id, planId: tx.plan_id, monto: tx.monto, metodo: 'mercadopago',
+      fechaPago: hoyChile(), periodoDesde: desde, notas: 'Pago online Mercado Pago, orden ' + tx.buy_order, origen: 'online',
+    }, client);
+    if (cr.error) throw new Error('No se pudo registrar el pago autorizado: ' + cr.error);
+    await cerrarTx(client, tx.id, 'autorizada', null, resp, cr.pago.id);
+    pagoNuevo = cr.pago.id;
+    return { txId: tx.id };
+  });
+
+  if (pagoNuevo) await emitirDocumento(pagoNuevo, { reintento: false });
+  return resultado;
 }
 
 // periodo_desde de un pago nuevo: dia siguiente al fin del periodo vigente, o hoy.
@@ -292,6 +384,6 @@ async function reintentarDocumento(txId) {
 }
 
 module.exports = {
-  getClientePorUsuario, listarPlanesActivos, iniciarPago, procesarRetorno, emitirDocumento,
+  getClientePorUsuario, listarPlanesActivos, iniciarPago, procesarRetorno, confirmarMercadoPago, emitirDocumento,
   getTransaccion, listarTransacciones, getDocumentoPdf, reintentarDocumento, sanitizarRespuesta,
 };
