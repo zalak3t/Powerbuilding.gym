@@ -67,7 +67,7 @@ function paintPagos(){
       +'<td style="color:var(--atext);font-weight:500"><div style="display:flex;align-items:center;gap:8px">'+avatarHtml(p.cliente_id,p.cliente_nombre,28,10)+'<span>'+esc(p.cliente_nombre)+'</span></div></td>'
       +'<td>'+esc(p.plan_nombre)+'</td>'
       +'<td style="color:var(--atext);font-weight:600">'+esc(formatCLP(p.monto))+'</td>'
-      +'<td>'+esc(p.metodo==='webpay'?'Webpay':p.metodo)+'</td>'
+      +'<td>'+esc({webpay:'Webpay',mercadopago:'Mercado Pago'}[p.metodo]||p.metodo)+'</td>'
       +'<td><span class="abadge '+(p.origen==='online'?'blue':'muted')+'">'+esc(p.origen==='online'?'online':'manual')+'</span></td>'
       +'<td style="white-space:nowrap">'+esc(formatFechaCL(p.periodo_desde))+' → '+esc(formatFechaCL(p.periodo_hasta))+'</td>'
       +'<td><span class="abadge '+(anulado?'muted':'green')+'">'+esc(p.estado)+'</span></td>'
