@@ -117,4 +117,21 @@ async function enviarCorreo({ tipo, clienteId, destinatario, asunto, texto, clav
   }
 }
 
-module.exports = { enviarCorreo, proveedorActivo, sanearAsunto, textoAHtml };
+/**
+ * Envía (o simula) un correo SIN guardarlo en notificaciones_log. Se usa para mensajes que
+ * llevan un enlace con token (verificación de correo): ni el enlace ni el destinatario deben
+ * quedar en el registro. NUNCA lanza. Devuelve { estado: 'enviado' | 'simulado' | 'error' }.
+ */
+async function enviarCorreoSinRegistro({ destinatario, asunto, texto }) {
+  const c = config();
+  if (proveedorActivo() !== 'brevo') return { estado: 'simulado' };
+  try {
+    await llamarBrevo(c, { destinatario, asunto: sanearAsunto(asunto), html: textoAHtml(texto) });
+    return { estado: 'enviado' };
+  } catch (e) {
+    console.error('[email] no se pudo enviar el correo de verificación:', sinSecretos(e && e.message, c.apiKey));
+    return { estado: 'error' };
+  }
+}
+
+module.exports = { enviarCorreo, enviarCorreoSinRegistro, proveedorActivo, sanearAsunto, textoAHtml };

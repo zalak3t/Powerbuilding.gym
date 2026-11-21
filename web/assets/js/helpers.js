@@ -29,7 +29,7 @@ function getAvatarColor(id) {
 // Soporta formato API (estado) y formato local (status)
 function getClientStatusClass(client) {
   var est=client.estado||client.status;
-  return est==='activo'?'green':est==='suspendido'?'amber':'red';
+  return est==='activo'?'green':est==='suspendido'?'amber':est==='eliminado'?'muted':'red';
 }
 
 // Retorna el porcentaje de ocupación de un bloque (0-100)

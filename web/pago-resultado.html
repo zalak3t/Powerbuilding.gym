@@ -126,7 +126,7 @@
         acciones(reintentar);
       } else {
         // iniciada: la confirmación puede tardar unos segundos
-        pintar(true, 'Confirmando tu pago', 'Estamos confirmando tu pago con Webpay. Esto puede tardar unos segundos.');
+        pintar(true, 'Confirmando tu pago', 'Estamos confirmando tu pago. Esto puede tardar unos segundos.');
         if (++intentos <= 5) setTimeout(cargar, 3000);
         else { pintar(false, 'Pago en revisión', 'Aún no recibimos la confirmación. Si se realizó un cobro, contáctanos.'); acciones(volver); }
       }

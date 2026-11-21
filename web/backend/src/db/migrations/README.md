@@ -1,6 +1,6 @@
 # Migraciones
 
-Cambios de esquema posteriores a `schema.sql`. **`schema.sql` y `seed.sql` no se modifican.**
+Cambios de esquema posteriores a `schema.sql`. **`schema.sql` no se modifica.** El `seed.sql` solo contiene bloques horarios iniciales (sin usuarios ni claves).
 
 ## Convenciones
 - Archivos numerados en orden: `001_descripcion.sql`, `002_descripcion.sql`, ...
@@ -27,6 +27,8 @@ Se aplican **a mano** por el responsable del proyecto. No se ejecutan desde el c
 | `003_notificaciones_log.sql` | Tabla `notificaciones_log` (registro de correos y recordatorios, con `clave_unica` para no duplicar envíos). |
 | `004_pagos_online.sql` | Pago en línea (Webpay): método `webpay` y `pagos.origen`, tablas `transacciones_pago` y `documentos_pago`, plantilla `pago_confirmado`. |
 | `005_mi_cuenta.sql` | "Mi cuenta" del alumno: tablas `clientes_foto` (foto y miniatura JPEG en BYTEA) y `marcas` (marcas declaradas). Solo agrega. |
+| `006_clientes_eliminados.sql` | Agrega el estado `eliminado` a `clientes` para eliminar fichas conservando el historial de pagos y asistencia. Aplicar a mano antes de desplegar la eliminación. |
+| `007_metodo_mercadopago.sql` | Agrega el método `mercadopago` a `pagos.metodo`. Aplicar a mano antes de activar Mercado Pago. |
 
 Compatibles con PostgreSQL 9.6 o superior (sin identity columns ni sintaxis exclusiva de versiones recientes).
 

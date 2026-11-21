@@ -79,9 +79,10 @@
     <h3 style="margin-bottom:.4rem">Pagar / renovar mi plan</h3>
     <div class="legal-note" id="payMembresia" style="text-align:left;margin:.2rem 0 .9rem"></div>
     <div id="payPlanes"></div>
+    <div id="payMetodos" style="margin:.6rem 0"></div>
     <div class="ferr" id="payErr"></div>
-    <button class="btn-grad" id="payBtn" onclick="iniciarPagoOnline()">Pagar con Webpay</button>
-    <p class="legal-note">Serás redirigido a Webpay (Transbank) para completar el pago de forma segura. Al terminar recibirás tu comprobante por correo.</p>
+    <button class="btn-grad" id="payBtn" onclick="iniciarPagoOnline()">Pagar</button>
+    <p class="legal-note" id="payNota">Serás redirigido para completar el pago de forma segura. Al terminar recibirás tu comprobante por correo.</p>
   </div>
 </div>
 
@@ -455,6 +456,7 @@
           <button class="abtn primary" onclick="openAddClient()">+ Nuevo cliente</button>
         </div>
         <div class="search-bar"><span style="color:var(--amuted);font-size:14px">🔍</span><input type="text" placeholder="Buscar por nombre o email..." oninput="filterClients(this.value)"/></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amuted2);margin:-4px 0 12px;cursor:pointer"><input type="checkbox" onchange="toggleDeletedClients(this.checked)"/> Ver clientes eliminados (solo historial)</label>
         <div class="tcard">
           <table class="atbl">
             <thead><tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Reservas</th><th>Asistencias</th><th>Estado</th><th>Membresía</th><th>Acciones</th></tr></thead>
@@ -576,7 +578,7 @@
           </table>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:1.25rem 0 .5rem">
-          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Transacciones online</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px">Pagos iniciados por los alumnos con Webpay.</div></div>
+          <div><div style="font-size:15px;font-weight:700;color:var(--atext)">Transacciones online</div><div style="font-size:12px;color:var(--amuted2);margin-top:2px">Pagos iniciados por los alumnos con Webpay o Mercado Pago.</div></div>
           <button class="abtn ghost" onclick="renderTransaccionesOnline()">Actualizar</button>
         </div>
         <div class="tcard">
@@ -684,7 +686,7 @@
 <script src="assets/js/avatar.js?v=b8"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/dashboard.js"></script>
-<script src="assets/js/clientes.js?v=b8"></script>
+<script src="assets/js/clientes.js?v=b9"></script>
 <script src="assets/js/bloques.js"></script>
 <script src="assets/js/disciplinas.js"></script>
 <script src="assets/js/instructores.js"></script>
@@ -698,8 +700,8 @@
 <script src="assets/js/negocio.js"></script>
 <script src="assets/js/admin-core.js"></script>
 <script src="assets/js/landing.js"></script>
-<script src="assets/js/pagos-online.js?v=b7"></script>
+<script src="assets/js/pagos-online.js?v=b8"></script>
 <script src="assets/js/password-ui.js?v=b8"></script>
-<script src="assets/js/auth.js?v=b8"></script>
+<script src="assets/js/auth.js?v=b9"></script>
 </body>
 </html>

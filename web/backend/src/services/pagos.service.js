@@ -45,8 +45,11 @@ async function getPagos({ clienteId, desde, hasta }) {
 async function createPago({ clienteId, planId, monto, metodo, fechaPago, periodoDesde, notas, origen }, externo) {
   const ejecutar = externo ? (fn) => fn(externo) : withTransaction;
   return ejecutar(async (client) => {
-    const cli = await client.query('SELECT id FROM clientes WHERE id = $1', [clienteId]);
+    const cli = await client.query('SELECT id, estado FROM clientes WHERE id = $1', [clienteId]);
     if (!cli.rows[0]) return { error: 'CLIENTE_NOT_FOUND' };
+    // A una ficha eliminada no se le registran pagos nuevos. Excepción: un pago online ya cobrado
+    // siempre se registra, para no dejar dinero cobrado sin registro.
+    if (cli.rows[0].estado === 'eliminado' && origen !== 'online') return { error: 'CLIENTE_NOT_FOUND' };
 
     const plan = await client.query('SELECT id, precio, activo FROM planes WHERE id = $1 FOR SHARE', [planId]);
     if (!plan.rows[0]) return { error: 'PLAN_NOT_FOUND' };
