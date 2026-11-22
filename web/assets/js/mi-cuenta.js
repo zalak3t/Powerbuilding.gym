@@ -1,6 +1,6 @@
 // ══ MI CUENTA (alumno) ══
 // Todas las llamadas usan /mi-cuenta/*: el servidor identifica al alumno por su token, nunca por un id.
-var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,reservas:[],asistencia:null,asistTodas:false,cancelando:false,chart:null,pagoHabilitado:false,pagando:false,fotoUrl:null};
+var mc={perfil:null,marcas:null,pagos:[],pagosTodos:false,reservas:[],asistencia:null,asistTodas:false,cancelando:false,chart:null,pagoHabilitado:false,metodos:[],pagando:false,fotoUrl:null};
 var MC_EJERCICIOS=[
   {id:'sentadilla',nombre:'Sentadilla',min:20,max:600,color:'#3b82f6'},
   {id:'banca',nombre:'Banca',min:20,max:500,color:'#10b981'},
@@ -50,7 +50,8 @@ async function mcInit(){
   try{
     var est=await fetch(API_BASE_URL+'/pagos-online/estado').then(function(r){return r.json();});
     mc.pagoHabilitado=!!est.habilitado;
-  }catch(e){mc.pagoHabilitado=false;}
+    mc.metodos=Array.isArray(est.metodos)?est.metodos:[];
+  }catch(e){mc.pagoHabilitado=false;mc.metodos=[];}
   await Promise.all([mcCargarPerfil(),mcCargarReservas(),mcCargarAsistencia(),mcCargarPagos(),mcCargarMarcas()]);
 }
 
@@ -295,7 +296,23 @@ function mcPintarMembresia(){
   }
 }
 
-// ── Pago en línea (Webpay) ──
+// ── Pago en línea (Webpay o Mercado Pago, según lo habilitado en el servidor) ──
+var MC_NOMBRES_METODO={webpay:'Webpay (tarjetas)',mercadopago:'Mercado Pago'};
+function mcMetodoElegido(){
+  var sel=document.querySelector('input[name="mcPayMetodo"]:checked');
+  return sel?sel.value:(mc.metodos[0]||'webpay');
+}
+function mcActualizarTextoPagar(){
+  var m=mcMetodoElegido();
+  var btn=mcEl('mcPayBtn');
+  if(btn&&!mc.pagando)btn.textContent='Pagar con '+(MC_NOMBRES_METODO[m]||m);
+  var nota=mcEl('mcPayNota');
+  if(nota)nota.textContent=m==='mercadopago'
+    ?'Serás redirigido a Mercado Pago para completar el pago. Al terminar recibirás tu comprobante por correo.'
+    :'Serás redirigido a Webpay (Transbank) para completar el pago de forma segura. Al terminar recibirás tu comprobante por correo.';
+}
+document.addEventListener('change',function(e){if(e.target&&e.target.name==='mcPayMetodo')mcActualizarTextoPagar();});
+
 function mcCerrarPago(){mcEl('mcPayOverlay').classList.remove('show');}
 
 async function mcAbrirPago(){
@@ -303,7 +320,6 @@ async function mcAbrirPago(){
   mcEl('mcPayPlanes').innerHTML='<div class="legal-note">Cargando planes...</div>';
   mcEl('mcPayMembresia').textContent='';
   mcEl('mcPayBtn').disabled=false;
-  mcEl('mcPayBtn').textContent='Pagar con Webpay';
   mcEl('mcPayOverlay').classList.add('show');
   try{
     var data=await apiRequest('/pagos-online/planes');
@@ -319,6 +335,13 @@ async function mcAbrirPago(){
       mcEl('mcPayBtn').disabled=true;
       return;
     }
+    var mets=mc.metodos;
+    mcEl('mcPayMetodos').innerHTML=mets.length>1
+      ?'<div class="legal-note" style="text-align:left;margin-bottom:.3rem">Elige cómo pagar:</div>'+mets.map(function(m,i){
+        return '<label class="pay-plan"><input type="radio" name="mcPayMetodo" value="'+esc(m)+'"'+(i===0?' checked':'')+'/><span>'+esc(MC_NOMBRES_METODO[m]||m)+'</span></label>';
+      }).join('')
+      :'';
+    mcActualizarTextoPagar();
     mcEl('mcPayPlanes').innerHTML=planes.map(function(p,i){
       return '<label class="pay-plan"><input type="radio" name="mcPayPlan" value="'+esc(p.id)+'"'+(i===0?' checked':'')+'/>'
         +'<span><strong>'+esc(p.nombre)+'</strong> — '+esc(formatCLP(p.precio))
@@ -332,7 +355,7 @@ async function mcAbrirPago(){
   }
 }
 
-// Crea la transacción y envía el formulario POST a Webpay con token_ws (sin iframe).
+// Crea la transacción. Webpay: formulario POST con token_ws (sin iframe). Mercado Pago: redirección a su checkout.
 async function mcIniciarPago(){
   if(mc.pagando)return;
   mcLimpiarError('mcPayErr');
@@ -340,10 +363,12 @@ async function mcIniciarPago(){
   if(!sel){mcMostrarError('mcPayErr','Selecciona un plan');return;}
   mc.pagando=true;
   var btn=mcEl('mcPayBtn');
-  btn.disabled=true;btn.textContent='Redirigiendo a Webpay...';
+  var metodo=mcMetodoElegido();
+  btn.disabled=true;btn.textContent='Redirigiendo...';
   try{
-    var data=await apiRequest('/pagos-online/iniciar',{method:'POST',body:JSON.stringify({plan_id:parseInt(sel.value,10)})});
+    var data=await apiRequest('/pagos-online/iniciar',{method:'POST',body:JSON.stringify({plan_id:parseInt(sel.value,10),metodo:metodo})});
     if(!data.url||!/^https:\/\//.test(data.url)||!data.token)throw new Error('Respuesta de pago inválida');
+    if(data.redirect){window.location.href=data.url;return;}
     var f=document.createElement('form');
     f.method='POST';f.action=data.url;
     var i=document.createElement('input');
@@ -353,8 +378,7 @@ async function mcIniciarPago(){
     f.submit();
   }catch(e){
     if(e.message!=='Sesión expirada')mcMostrarError('mcPayErr',e.message||'No se pudo iniciar el pago');
-    btn.disabled=false;btn.textContent='Pagar con Webpay';
-    mc.pagando=false;
+    btn.disabled=false;mc.pagando=false;mcActualizarTextoPagar();
   }
 }
 
