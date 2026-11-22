@@ -30,7 +30,7 @@ function generarComprobante(datos) {
       const ancho = doc.page.width - M * 2;
 
       doc.fillColor(COLOR.acento).font('Helvetica-Bold').fontSize(22).text('Powerbuilding.gym', M, M);
-      doc.fillColor(COLOR.tenue).font('Helvetica').fontSize(10).text('Camilo Henríquez 3314, Santiago');
+      doc.fillColor(COLOR.tenue).font('Helvetica').fontSize(10).text('Camilo Henríquez 3314, Puente Alto');
       doc.moveDown(1.2);
       doc.fillColor(COLOR.texto).font('Helvetica-Bold').fontSize(18).text('Comprobante de pago');
       doc.font('Helvetica').fontSize(11).fillColor(COLOR.tenue).text('Folio ' + datos.folio + '  ·  Fecha ' + fechaCorta(datos.fechaPago));
