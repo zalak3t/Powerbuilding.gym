@@ -1,6 +1,8 @@
 // Envoltorio de la API de Mercado Pago (Checkout Pro) para el pago en linea.
-// Seguridad: solo acepta credenciales de PRUEBA (prefijo TEST-). Con una credencial de produccion
-// (APP_USR-) el metodo queda deshabilitado aunque se configure. Ver mercadopagoHabilitado().
+// Seguridad: solo se habilita en MODO PRUEBA. Mercado Pago entrega hoy el token de pruebas con el
+// prefijo APP_USR- (igual que el de produccion), asi que el prefijo ya no distingue uno de otro.
+// Por eso se exige MP_MODO_PRUEBA=1 como declaracion explicita ademas de MP_HABILITADO=1.
+// Ver mercadopagoHabilitado().
 // No registra ni devuelve el token. La confirmacion de un pago SIEMPRE se hace consultando su API.
 
 const API = 'https://api.mercadopago.com';
@@ -11,6 +13,9 @@ function setFetchMercadoPago(f) { fetchInyectado = f || null; }
 
 function token() { return String(process.env.MP_ACCESS_TOKEN || '').trim(); }
 
+// Un token valido de Mercado Pago empieza con TEST- (formato antiguo de pruebas) o APP_USR-.
+function formatoTokenValido(t) { return /^(TEST|APP_USR)-/.test(t); }
+// Solo el formato antiguo TEST- se reconoce como prueba por si mismo.
 function esCredencialPrueba(t) { return /^TEST-/.test(t); }
 
 async function llamar(path, { method = 'GET', body } = {}) {
@@ -47,7 +52,7 @@ async function crearPreferencia({ buyOrder, titulo, monto, backUrl, notification
     },
   });
   if (!data || !data.id) throw new Error('Respuesta incompleta de Mercado Pago');
-  const url = esCredencialPrueba(token()) ? data.sandbox_init_point : data.init_point;
+  const url = esCredencialPrueba(token()) ? data.sandbox_init_point : data.init_point; // con APP_USR- de pruebas se paga entrando con la cuenta Comprador de prueba
   if (!url) throw new Error('Mercado Pago no devolvió la URL de pago');
   return { id: String(data.id), url };
 }
@@ -68,13 +73,18 @@ async function obtenerPago(paymentId) {
   };
 }
 
-// Mercado Pago solo se habilita con MP_HABILITADO=1 y credencial de prueba. Nunca con APP_USR-.
+// Mercado Pago solo se habilita con MP_HABILITADO=1, MP_MODO_PRUEBA=1 y un token con formato valido.
+// Sin MP_MODO_PRUEBA=1 el metodo queda deshabilitado aunque haya token (evita cobros reales por error).
 function mercadopagoHabilitado() {
   if (String(process.env.MP_HABILITADO || '') !== '1') return false;
+  if (String(process.env.MP_MODO_PRUEBA || '') !== '1') {
+    console.warn('[mercadopago] falta MP_MODO_PRUEBA=1; el metodo queda deshabilitado (solo se permite modo prueba).');
+    return false;
+  }
   const t = token();
   if (!t) return false;
-  if (!esCredencialPrueba(t)) {
-    console.warn('[mercadopago] MP_ACCESS_TOKEN no es de prueba (TEST-); el metodo queda deshabilitado.');
+  if (!formatoTokenValido(t)) {
+    console.warn('[mercadopago] MP_ACCESS_TOKEN con formato no valido; el metodo queda deshabilitado.');
     return false;
   }
   return true;
