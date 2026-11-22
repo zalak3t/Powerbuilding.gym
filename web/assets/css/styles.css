@@ -414,11 +414,11 @@ footer em{color:var(--pink);font-style:normal}
   /* ── MODAL AUTH ── */
   .overlay {
     padding: 0.75rem;
-    align-items: flex-end;
+    align-items: center;
   }
   .modal {
     max-width: calc(100% - 0px);
-    border-radius: 20px 20px 16px 16px;
+    border-radius: 20px;
     padding: 1.5rem;
   }
 
@@ -554,7 +554,7 @@ footer em{color:var(--pink);font-style:normal}
   /* ── MODAL AUTH ── */
   .modal {
     padding: 1.25rem;
-    border-radius: 18px 18px 0 0;
+    border-radius: 18px;
   }
   .field input {
     font-size: 16px; /* evita zoom automático en iOS */
