@@ -13,11 +13,17 @@
    ```bash
    psql $DATABASE_URL -f web/backend/src/db/schema.sql
    ```
-6. Ejecutar el seed (usuarios y bloques iniciales):
+6. Ejecutar el seed (solo bloques horarios iniciales; no crea usuarios ni contraseñas):
    ```bash
    psql $DATABASE_URL -f web/backend/src/db/seed.sql
    ```
-7. Verificar que las tablas existan:
+7. Crear el primer administrador. Las credenciales se pasan por variables de entorno, nunca se escriben en el repositorio ni en archivos versionados:
+   ```bash
+   cd web/backend
+   ADMIN_EMAIL="correo@ejemplo.cl" ADMIN_PASSWORD="<clave de al menos 10 caracteres, con mayúscula, minúscula y número>" npm run create-admin
+   ```
+   El script valida la fortaleza de la clave, guarda solo su hash (bcrypt) y no sobrescribe un usuario que ya exista.
+8. Verificar que las tablas existan:
    ```sql
    \dt
    ```
@@ -41,13 +47,22 @@
    | `NODE_ENV`     | `production`                               |
    | `PORT`         | Railway lo asigna automáticamente          |
 
+   Pagos en línea (opcionales, solo en modo prueba por ahora):
+
+   | Variable | Valor |
+   |---|---|
+   | `BACKEND_PUBLIC_URL` | URL pública de la API en Railway (sin `/` final); Mercado Pago la usa para redirigir y notificar |
+   | `MP_HABILITADO` | `1` para activar Mercado Pago |
+   | `MP_ACCESS_TOKEN` | credencial de **prueba** de Mercado Pago (empieza con `TEST-`). Si empieza con `APP_USR-` (producción) el método queda deshabilitado |
+
+   Antes de activar Mercado Pago hay que aplicar a mano la migración `007_metodo_mercadopago.sql` en la base de producción.
+
 4. Railway desplegará automáticamente al detectar el directorio `backend`.
 5. Probar los endpoints:
    ```
    GET https://TU-BACKEND.up.railway.app/api/ping
-   GET https://TU-BACKEND.up.railway.app/api/db-test
    ```
-   Ambos deben responder `{ ok: true, ... }`.
+   Debe responder `{ ok: true, ... }`. El diagnóstico de base de datos (`GET /api/db-test`) requiere sesión de administrador (cabecera `Authorization: Bearer <token>`).
 6. Copiar la URL pública del backend (ej. `https://powerbuilding-api.up.railway.app`).
 
 ---
@@ -84,8 +99,10 @@
 Abrir la URL de Netlify y verificar cada ítem con DevTools → Network abierto:
 
 ### Auth
-- [ ] Login como admin (`admin@powerbuilding.gym` / contraseña del seed)
-- [ ] Login como alumno (`carlos@gmail.com` / contraseña del seed)
+- [ ] Login como admin (con el administrador creado con `npm run create-admin`)
+- [ ] Registro de un alumno nuevo e inicio de sesión con esa cuenta
+- [ ] Registro con un correo que ya tiene ficha creada por el gimnasio: debe responder "te enviamos un correo", llegar el enlace (revisar spam) y, al abrirlo, quedar la cuenta activa con la ficha enlazada. Requiere `EMAIL_PROVIDER=brevo`, `EMAIL_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` configuradas en Railway
+- [ ] Pago en línea con Mercado Pago (sandbox): elegir el método, completar el pago de prueba y verificar que la membresía quede activa y llegue el comprobante
 - [ ] Logout y re-login
 - [ ] Token guardado en `localStorage` como `pb_token`
 

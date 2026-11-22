@@ -24,8 +24,13 @@ async function doRegister(){
   if(passErr){err.textContent=passErr;err.classList.add('show');return;}
   if(!document.getElementById('rConsent').checked){err.textContent='Debes aceptar la política de privacidad';err.classList.add('show');return;}
   try {
-    await apiRequest('/auth/register',{method:'POST',body:JSON.stringify({nombre:name,email:email,telefono:phone,password:pass})});
-    ok.classList.add('show');
+    var resp=await apiRequest('/auth/register',{method:'POST',body:JSON.stringify({nombre:name,email:email,telefono:phone,password:pass})});
+    if(resp.pendiente_verificacion){
+      // El correo ya tenía ficha en el gimnasio: la cuenta se activa al confirmar el enlace enviado.
+      ok.textContent=resp.message;ok.classList.add('show');
+      return;
+    }
+    ok.textContent='¡Cuenta creada! Inicia sesión.';ok.classList.add('show');
     setTimeout(function(){switchTab('login');},1400);
   } catch(e) {
     err.textContent=e.message||'Error al registrar';err.classList.add('show');
@@ -128,3 +133,20 @@ async function checkExistingSession(){
 }
 
 checkExistingSession();
+
+
+// Confirmación de correo: el enlace del mensaje abre la web con #verificar=<token>.
+// El token viaja en el fragmento (#), que el navegador no envía a ningún servidor.
+(function(){
+  function procesarEnlaceVerificacion(){
+    var m=/^#verificar=([\w-]+\.[\w-]+\.[\w-]+)$/.exec(window.location.hash||'');
+    if(!m)return;
+    var token=m[1];
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+    apiRequest('/auth/verificar-correo',{method:'POST',body:JSON.stringify({token:token})})
+      .then(function(r){lndToast(r.message||'Correo confirmado. Ya puedes iniciar sesión.');openAuth();switchTab('login');})
+      .catch(function(e){lndToast(e.message||'No se pudo confirmar el correo','err');});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',procesarEnlaceVerificacion);
+  else procesarEnlaceVerificacion();
+})();

@@ -1,23 +1,35 @@
 // ══ CLIENTES ══
 var clientFilter='';
+var showDeletedClients=false;
 var editClientId=null;
 var adminClientsCache=[];
 
 async function renderClients(filter){
   if(filter!==undefined)clientFilter=filter;
-  var search=clientFilter?'?search='+encodeURIComponent(clientFilter):'';
+  var params=[];
+  if(clientFilter)params.push('search='+encodeURIComponent(clientFilter));
+  if(showDeletedClients)params.push('estado=eliminado');
+  var search=params.length?'?'+params.join('&'):'';
   document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">Cargando clientes...</td></tr>';
   try {
     var data=await apiRequest('/clientes'+search);
     adminClientsCache=data.clientes||[];
     var total=adminClientsCache.length;
-    document.getElementById('clientCount').textContent=total+' cliente'+(total!==1?'s':'')+(clientFilter?' encontrados':' registrados');
+    document.getElementById('clientCount').textContent=total+' cliente'+(total!==1?'s':'')+(showDeletedClients?(total===1?' eliminado':' eliminados'):(clientFilter?' encontrados':' registrados'));
     if(!total){
       document.getElementById('clientTable').innerHTML='<tr><td colspan="8" style="color:var(--amuted);padding:1rem">No hay clientes'+(clientFilter?' con ese criterio':'')+'.</td></tr>';
       return;
     }
     document.getElementById('clientTable').innerHTML=adminClientsCache.map(function(c){
       var statusBadge=getClientStatusClass(c);
+      if(c.estado==='eliminado'){
+        return '<tr><td><span style="color:var(--amuted2);font-weight:500">'+esc(c.nombre)+'</span></td>'
+          +'<td>—</td><td>—</td>'
+          +'<td><span class="abadge blue">'+esc(c.reservas)+'</span></td>'
+          +'<td><span class="abadge green">'+esc(c.asistencias)+'</span></td>'
+          +'<td><span class="abadge muted">eliminado</span></td><td>—</td>'
+          +'<td><div class="abtn-row"><button class="abtn ghost" style="font-size:11px;padding:5px 10px" onclick="openFicha('+c.id+')">Ver historial</button></div></td></tr>';
+      }
       return '<tr><td><div style="display:flex;align-items:center;gap:8px">'+avatarHtml(c.id,c.nombre,30,11)+'<span style="color:var(--atext);font-weight:500">'+esc(c.nombre)+'</span></div></td>'
         +'<td>'+esc(c.email)+'</td><td>'+(esc(c.telefono)||'—')+'</td>'
         +'<td><span class="abadge blue">'+esc(c.reservas)+'</span></td>'
@@ -39,6 +51,7 @@ async function renderClients(filter){
 }
 
 function filterClients(v){renderClients(v);}
+function toggleDeletedClients(v){showDeletedClients=!!v;renderClients();}
 
 function openAddClient(){
   editClientId=null;
@@ -98,7 +111,7 @@ async function toggleBlock_Client(id){
 }
 
 async function deleteClient(id){
-  if(!confirm('¿Eliminar este cliente? También se eliminarán sus reservas y asistencias asociadas.'))return;
+  if(!confirm('¿Eliminar este cliente?\n\nSe borran sus datos personales y su acceso: su correo quedará libre para volver a registrarse. Su historial de pagos, reservas y asistencias se conserva y se puede consultar en "Ver clientes eliminados".'))return;
   try {
     await apiRequest('/clientes/'+id,{method:'DELETE'});
     adminToast('Cliente eliminado','ok');
@@ -118,7 +131,7 @@ async function openFicha(id){
     var html='<div style="display:flex;align-items:center;gap:14px;margin-bottom:1.5rem">'
       +avatarHtml(cliente.id,cliente.nombre,52,18)
       +'<div><div style="font-size:17px;font-weight:700;color:var(--atext)">'+esc(cliente.nombre)+'</div>'
-      +'<div style="font-size:12px;color:var(--amuted2);margin-top:2px">'+esc(cliente.email)+' · '+(esc(cliente.telefono)||'—')+'</div>'
+      +'<div style="font-size:12px;color:var(--amuted2);margin-top:2px">'+(cliente.estado==='eliminado'?'—':esc(cliente.email)+' · '+(esc(cliente.telefono)||'—'))+'</div>'
       +'<span class="abadge '+statusBadge+'" style="margin-top:6px">'+esc(cliente.estado)+'</span></div></div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.25rem">'
       +'<div style="background:var(--abg3);border-radius:10px;padding:.75rem;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue)">'+esc(cliente.reservas)+'</div><div style="font-size:10px;color:var(--amuted2);margin-top:2px;text-transform:uppercase">Reservas</div></div>'
@@ -147,7 +160,9 @@ async function openFicha(id){
         +'<span class="abadge '+(anulado?'muted':'green')+'">'+esc(pg.estado)+'</span></div>';
     }).join('');
     if(pagos.length>5)html+='<div style="font-size:11px;color:var(--amuted2);padding-top:6px">y '+(pagos.length-5)+' más en la sección Pagos.</div>';
-    html+='<div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">'
+    if(cliente.estado==='eliminado'){
+      html+='<div style="margin-top:1rem;font-size:12px;color:var(--amuted2)">Ficha eliminada: se conserva solo el historial. Sus datos personales fueron borrados.</div>';
+    } else html+='<div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">'
       +'<a href="https://wa.me/'+(cliente.telefono||'').replace(/\D/g,'')+'" target="_blank" class="abtn success" style="text-decoration:none;font-size:12px">💬 WhatsApp</a>'
       +'<button class="abtn ghost" onclick="openEditClient('+cliente.id+');closeAModal(\'modalFicha\')">Editar ficha</button>'
       +'<button class="abtn '+(cliente.estado==='bloqueado'?'success':'danger')+'" onclick="closeAModal(\'modalFicha\');toggleBlock_Client('+cliente.id+')">'+(cliente.estado==='bloqueado'?'Desbloquear':'Bloquear acceso')+'</button>'

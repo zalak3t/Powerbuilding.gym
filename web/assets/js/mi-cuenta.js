@@ -6,7 +6,7 @@ var MC_EJERCICIOS=[
   {id:'banca',nombre:'Banca',min:20,max:500,color:'#10b981'},
   {id:'peso_muerto',nombre:'Peso muerto',min:20,max:600,color:'#f59e0b'}
 ];
-var MC_METODOS={efectivo:'Efectivo',transferencia:'Transferencia',webpay:'Webpay',otro:'Otro'};
+var MC_METODOS={efectivo:'Efectivo',transferencia:'Transferencia',webpay:'Webpay',mercadopago:'Mercado Pago',otro:'Otro'};
 
 function mcEl(id){return document.getElementById(id);}
 function mcKg(n){return String(n).replace('.',',')+' kg';}

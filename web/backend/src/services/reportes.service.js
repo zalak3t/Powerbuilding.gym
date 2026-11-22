@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { DIAS } = require('../utils/validate');
+const { reservaVigente } = require('../utils/reservasSql');
 
 const SIN_ASIGNAR = 'Sin asignar';
 
@@ -79,7 +80,7 @@ async function datosOcupacionIngresos(desde, hasta) {
     `SELECT b.id AS bloque_id, b.dia, b.horario, b.estado, b.capacidad,
             COALESCE(d.nombre, $3) AS disciplina,
             COALESCE(i.nombre, $3) AS instructor,
-            (SELECT COUNT(*)::int FROM reservas r WHERE r.bloque_id = b.id) AS inscritos,
+            (SELECT COUNT(*)::int FROM reservas r WHERE r.bloque_id = b.id AND ${reservaVigente('r')}) AS inscritos,
             (SELECT COUNT(*)::int FROM asistencias a
                JOIN reservas r ON r.id = a.reserva_id
               WHERE r.bloque_id = b.id AND a.fecha >= $1::date AND a.fecha <= $2::date) AS asistencias

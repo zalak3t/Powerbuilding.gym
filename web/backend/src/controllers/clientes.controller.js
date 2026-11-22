@@ -22,13 +22,17 @@ function validarClienteBody(body) {
   return { nombre: nombre.trim(), email: email.toLowerCase().trim(), telefono, notas, estado: est };
 }
 
-// GET /api/clientes?search=...
+// GET /api/clientes?search=...&estado=eliminado
+// Sin `estado` se omiten las fichas eliminadas; con estado=eliminado se listan solo ellas (historial).
 async function listarClientes(req, res) {
-  const { search } = req.query;
+  const { search, estado } = req.query;
   if (search !== undefined && !(typeof search === 'string' && search.length <= 100)) {
     return res.status(400).json({ ok: false, error: 'Búsqueda inválida (máximo 100 caracteres)' });
   }
-  const clientes = await getClientes({ search: search || null });
+  if (estado !== undefined && estado !== 'eliminado') {
+    return res.status(400).json({ ok: false, error: 'Filtro de estado inválido' });
+  }
+  const clientes = await getClientes({ search: search || null, soloEliminados: estado === 'eliminado' });
   return res.json({ ok: true, clientes });
 }
 
@@ -69,6 +73,9 @@ async function editarCliente(req, res) {
 
   const existing = await getClienteById(id);
   if (!existing) return res.status(404).json({ ok: false, error: 'Cliente no encontrado' });
+  if (existing.estado === 'eliminado') {
+    return res.status(409).json({ ok: false, error: 'La ficha fue eliminada y no se puede modificar' });
+  }
 
   try {
     const cliente = await updateCliente(id, val);
@@ -93,6 +100,9 @@ async function cambiarEstado(req, res) {
 
   const existing = await getClienteById(id);
   if (!existing) return res.status(404).json({ ok: false, error: 'Cliente no encontrado' });
+  if (existing.estado === 'eliminado') {
+    return res.status(409).json({ ok: false, error: 'La ficha fue eliminada y no se puede modificar' });
+  }
 
   const cliente = await updateClienteEstado(id, estado);
   return res.json({ ok: true, message: 'Estado del cliente actualizado', cliente });
