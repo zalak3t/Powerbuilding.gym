@@ -53,7 +53,8 @@
    |---|---|
    | `BACKEND_PUBLIC_URL` | URL pública de la API en Railway (sin `/` final); Mercado Pago la usa para redirigir y notificar |
    | `MP_HABILITADO` | `1` para activar Mercado Pago |
-   | `MP_ACCESS_TOKEN` | credencial de **prueba** de Mercado Pago (empieza con `TEST-`). Si empieza con `APP_USR-` (producción) el método queda deshabilitado |
+   | `MP_MODO_PRUEBA` | `1` para declarar que el token es de **prueba**. Sin esta variable Mercado Pago queda deshabilitado |
+   | `MP_ACCESS_TOKEN` | Access Token de las **credenciales de prueba** de Mercado Pago. Hoy empieza con `APP_USR-` igual que el de producción, por eso el prefijo no sirve para distinguirlos: usar solo el de *Credenciales de prueba* y nunca el de producción |
 
    Antes de activar Mercado Pago hay que aplicar a mano la migración `007_metodo_mercadopago.sql` en la base de producción.
 
