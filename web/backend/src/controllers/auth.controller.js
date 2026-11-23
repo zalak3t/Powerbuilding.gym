@@ -11,6 +11,7 @@ const {
 const { enviarCorreoSinRegistro } = require('../services/email.service');
 const v = require('../utils/validate');
 const { validarFortaleza } = require('../utils/password');
+const { solicitarRecuperacion, restablecerContrasena } = require('../services/recuperacion.service');
 
 async function register(req, res) {
   const { nombre, email, password, telefono } = req.body;
@@ -148,4 +149,44 @@ async function me(req, res) {
   });
 }
 
-module.exports = { register, verificarCorreo, login, me };
+// POST /api/auth/recuperar  { email }
+// Responde SIEMPRE lo mismo (exista o no la cuenta) y sin esperar al trabajo real, para que ni el
+// mensaje ni el tiempo de respuesta revelen qué correos están registrados.
+async function recuperar(req, res) {
+  const { email } = req.body || {};
+  if (!v.isNonEmptyString(email) || !v.isEmail(email) || !v.maxLen(email.trim(), 150)) {
+    return res.status(400).json({ ok: false, error: 'Ingresa un correo válido' });
+  }
+  const respuesta = {
+    ok: true,
+    message: 'Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña (vale 30 minutos). Revisa también spam.',
+  };
+  const trabajo = solicitarRecuperacion(email).catch((err) => {
+    console.error('[recuperar] no se pudo procesar la solicitud:', err && err.message);
+    return null;
+  });
+  // Solo en modo local (PB_LOCAL=1) y sin proveedor real de correo se devuelve el enlace para probar.
+  if (process.env.PB_LOCAL === '1') {
+    const r = await trabajo;
+    if (r && r.estado === 'simulado') respuesta.enlace_desarrollo = r.enlace;
+  }
+  return res.json(respuesta);
+}
+
+// POST /api/auth/restablecer  { token, password }
+async function restablecer(req, res) {
+  const { token, password } = req.body || {};
+  if (!v.isNonEmptyString(token) || !v.isString(password) || !password) {
+    return res.status(400).json({ ok: false, error: 'token y password son obligatorios' });
+  }
+  const errPassword = validarFortaleza(password);
+  if (errPassword) return res.status(400).json({ ok: false, error: errPassword });
+
+  const ok = await restablecerContrasena(token, password);
+  if (!ok) {
+    return res.status(400).json({ ok: false, error: 'El enlace no es válido o venció. Solicita uno nuevo.' });
+  }
+  return res.json({ ok: true, message: 'Contraseña actualizada. Ya puedes iniciar sesión.' });
+}
+
+module.exports = { register, verificarCorreo, login, me, recuperar, restablecer };

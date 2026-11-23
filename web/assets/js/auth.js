@@ -4,12 +4,38 @@ function closeAuth(){document.getElementById('authOverlay').classList.remove('sh
 function switchTab(tab){
   document.getElementById('fLogin').style.display=tab==='login'?'block':'none';
   document.getElementById('fReg').style.display=tab==='reg'?'block':'none';
+  document.getElementById('fForgot').style.display=tab==='forgot'?'block':'none';
+  document.getElementById('tabsAuth').style.display=tab==='forgot'?'none':'flex';
   document.getElementById('tabLogin').className='tab-auth'+(tab==='login'?' active':'');
   document.getElementById('tabReg').className='tab-auth'+(tab==='reg'?' active':'');
   document.getElementById('lErr').classList.remove('show');
   document.getElementById('rErr').classList.remove('show');
   document.getElementById('rOk').classList.remove('show');
   document.getElementById('rConsent').checked=false;
+  document.getElementById('fErr').classList.remove('show');
+  document.getElementById('fOk').classList.remove('show');
+  if(tab==='forgot'){
+    // Reutiliza el correo ya escrito en el login para ahorrar un paso
+    var le=document.getElementById('lEmail').value.trim();
+    if(le&&!document.getElementById('fEmail').value)document.getElementById('fEmail').value=le;
+    document.getElementById('fBtn').disabled=false;
+  }
+}
+
+// Recuperación de contraseña: el servidor responde siempre lo mismo (exista o no la cuenta).
+async function doRecuperar(){
+  var email=document.getElementById('fEmail').value.trim().toLowerCase();
+  var err=document.getElementById('fErr'),ok=document.getElementById('fOk'),btn=document.getElementById('fBtn');
+  err.classList.remove('show');ok.classList.remove('show');
+  if(!email||email.indexOf('@')<1){err.textContent='Ingresa un correo válido';err.classList.add('show');return;}
+  btn.disabled=true;
+  try{
+    var r=await apiRequest('/auth/recuperar',{method:'POST',body:JSON.stringify({email:email})});
+    ok.textContent=r.message||'Si el correo está registrado, te enviamos un enlace.';ok.classList.add('show');
+  }catch(e){
+    err.textContent=e.message||'No se pudo enviar. Intenta nuevamente.';err.classList.add('show');
+    btn.disabled=false;
+  }
 }
 
 async function doRegister(){
@@ -149,4 +175,15 @@ checkExistingSession();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',procesarEnlaceVerificacion);
   else procesarEnlaceVerificacion();
+})();
+
+// Enlace directo "#recuperar" (lo usa el login de la app de administración).
+(function(){
+  function abrirRecuperar(){
+    if((window.location.hash||'')!=='#recuperar')return;
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+    openAuth();switchTab('forgot');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',abrirRecuperar);
+  else abrirRecuperar();
 })();

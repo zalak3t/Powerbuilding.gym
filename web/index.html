@@ -47,7 +47,7 @@
   <div class="modal">
     <button class="modal-close" onclick="closeAuth()">×</button>
     <div class="modal-logo"><div class="logo-circle">PB</div></div>
-    <div class="tabs-auth">
+    <div class="tabs-auth" id="tabsAuth">
       <button class="tab-auth active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
       <button class="tab-auth" id="tabReg" onclick="switchTab('reg')">Registrarse</button>
     </div>
@@ -56,7 +56,17 @@
       <div class="field"><label>Contraseña</label><input type="password" id="lPass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <div class="ferr" id="lErr">Email o contraseña incorrectos</div>
       <button class="btn-grad" onclick="doLogin()">Entrar</button>
+      <p class="legal-note"><a href="#" id="lForgot" onclick="switchTab('forgot');return false">¿Olvidaste tu contraseña?</a></p>
       <p class="legal-note"><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a></p>
+    </div>
+    <div id="fForgot" style="display:none">
+      <h3 style="margin-bottom:.4rem;color:#fff">Recuperar contraseña</h3>
+      <p class="legal-note" style="text-align:left;margin:0 0 1rem">Escribe el correo de tu cuenta y te enviaremos un enlace para elegir una contraseña nueva. Vale 30 minutos.</p>
+      <div class="field"><label>Email</label><input type="email" id="fEmail" placeholder="tu@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')doRecuperar()"/></div>
+      <div class="ferr" id="fErr"></div>
+      <div class="fok" id="fOk"></div>
+      <button class="btn-grad" id="fBtn" onclick="doRecuperar()">Enviar enlace</button>
+      <p class="legal-note"><a href="#" onclick="switchTab('login');return false">← Volver a iniciar sesión</a></p>
     </div>
     <div id="fReg" style="display:none">
       <div class="field"><label>Nombre completo</label><input type="text" id="rName" placeholder="Tu nombre"/></div>
@@ -703,6 +713,6 @@
 <script src="assets/js/landing.js"></script>
 <script src="assets/js/pagos-online.js?v=b8"></script>
 <script src="assets/js/password-ui.js?v=b8"></script>
-<script src="assets/js/auth.js?v=b9"></script>
+<script src="assets/js/auth.js?v=b10"></script>
 </body>
 </html>

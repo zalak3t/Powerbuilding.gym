@@ -29,6 +29,7 @@ Se aplican **a mano** por el responsable del proyecto. No se ejecutan desde el c
 | `005_mi_cuenta.sql` | "Mi cuenta" del alumno: tablas `clientes_foto` (foto y miniatura JPEG en BYTEA) y `marcas` (marcas declaradas). Solo agrega. |
 | `006_clientes_eliminados.sql` | Agrega el estado `eliminado` a `clientes` para eliminar fichas conservando el historial de pagos y asistencia. Aplicar a mano antes de desplegar la eliminación. |
 | `007_metodo_mercadopago.sql` | Agrega el método `mercadopago` a `pagos.metodo`. Aplicar a mano antes de activar Mercado Pago. |
+| `008_recuperar_contrasena.sql` | Recuperación de contraseña: tabla `password_resets` (hash SHA-256 del token, vencimiento y uso único). Solo agrega. Aplicar a mano antes de desplegar. |
 
 Compatibles con PostgreSQL 9.6 o superior (sin identity columns ni sintaxis exclusiva de versiones recientes).
 

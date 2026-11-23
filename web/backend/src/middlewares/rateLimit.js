@@ -44,4 +44,18 @@ const pagoIniciarLimiter = crearLimitador({
   mensaje: 'Demasiadas solicitudes de pago. Intenta nuevamente en unos minutos.',
 });
 
-module.exports = { loginLimiter, registerLimiter, verificarCorreoLimiter, pagoIniciarLimiter };
+// Recuperación de contraseña: 5 solicitudes por hora por IP (además hay un tope de 3 por cuenta).
+const recuperarLimiter = crearLimitador({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  mensaje: 'Demasiadas solicitudes de recuperación. Intenta nuevamente más tarde.',
+});
+
+// Restablecer con token: 10 intentos por hora por IP (los tokens son de 256 bits).
+const restablecerLimiter = crearLimitador({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  mensaje: 'Demasiados intentos. Intenta nuevamente más tarde.',
+});
+
+module.exports = { loginLimiter, registerLimiter, verificarCorreoLimiter, pagoIniciarLimiter, recuperarLimiter, restablecerLimiter };
