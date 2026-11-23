@@ -55,3 +55,5 @@ input:focus{outline:2px solid var(--pink);outline-offset:1px}
 .empty-row{padding:14px;color:var(--amuted2);font-size:14px}
 .install{background:var(--abg2);border:1px dashed var(--aborder2);border-radius:14px;padding:14px;margin-top:8px;font-size:14px;color:var(--amuted2)}
 .install .btn{margin-top:10px;width:100%}
+
+.btn.ghost{display:flex;align-items:center;justify-content:center;width:100%;margin-top:12px;background:transparent;color:var(--amuted2);text-decoration:none}
