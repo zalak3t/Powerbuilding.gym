@@ -1,7 +1,7 @@
 // Service worker PWA admin: cachea SOLO el shell estático.
 // Nunca cachea respuestas de la API (datos personales, Ley 19.628): las peticiones
 // cross-origin y cualquier método distinto de GET no se interceptan.
-var CACHE = 'pb-admin-shell-v2'; // subir al cambiar el shell: el activate borra los pb-admin-shell-* anteriores
+var CACHE = 'pb-admin-shell-v3'; // subir al cambiar el shell: el activate borra los pb-admin-shell-* anteriores
 var SHELL = [
   '/admin/',
   '/admin/index.html',
