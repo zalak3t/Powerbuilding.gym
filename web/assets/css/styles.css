@@ -797,3 +797,41 @@ nav{left:env(safe-area-inset-left);right:env(safe-area-inset-right)}
 @media (display-mode: standalone) and (max-width: 768px){
   .toast-wrap{bottom:calc(16px + env(safe-area-inset-bottom))}
 }
+
+/* ── Panel admin en móvil: barra inferior y tablas como tarjetas (solo ≤768px) ── */
+#mnav,#msheet,#mback{display:none}
+@media (max-width:768px){
+  .sidebar{display:none}
+  .acontent{padding:1rem 1rem calc(84px + env(safe-area-inset-bottom))}
+  .atopbar{padding:0 .875rem}
+  .atopbar-sub,.tb-badge{display:none}
+
+  #mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:700;background:#070910;border-top:1px solid var(--aborder);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .mn-item{flex:1;min-width:0;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px;background:none;border:0;border-radius:10px;color:var(--amuted);font:inherit;font-size:10.5px;font-weight:500;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .mn-item span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mn-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .mn-item.active{color:var(--blue)}
+  #mback{display:block;position:fixed;inset:0;z-index:690;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .2s}
+  #mback.on{opacity:1;pointer-events:auto}
+  #msheet{display:block;position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));z-index:695;background:var(--abg2);border:1px solid var(--aborder2);border-bottom:0;border-radius:20px 20px 0 0;padding:16px 14px;max-height:70dvh;overflow-y:auto;transform:translateY(120%);transition:transform .25s}
+  #msheet.on{transform:none}
+  .mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .mgrid .mn-item{flex:none;min-height:78px;padding:12px 6px;background:var(--abg);border:1px solid var(--aborder);border-radius:14px;color:var(--atext);font-size:12px;text-align:center}
+  .mgrid .mn-item svg{color:var(--blue)}
+  .mgrid .mn-item.active{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+
+  .tcard:has(>.atbl){background:none;border:0;border-radius:0;overflow:visible}
+  .tcard:has(>.atbl) .tcard-head{padding:0 0 .75rem;border:0}
+  .atbl{min-width:0}
+  .atbl,.atbl tbody{display:block;width:100%}
+  .atbl thead{display:none}
+  .atbl tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px;background:var(--abg2);border:1px solid var(--aborder);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+  .atbl tr:hover td{background:none}
+  .atbl th,.atbl td{padding:0;border:0}
+  .atbl td{display:block;min-width:0;font-size:13px;overflow-wrap:anywhere}
+  .atbl td.mt,.atbl td.wide,.atbl td:has(.abtn-row){grid-column:1/-1}
+  .atbl td.mt{order:-1;font-size:14px;font-weight:600;color:var(--atext)}
+  .atbl td.vacia{display:none}
+  .atbl td[data-label]:not(.mt):not(:has(.abtn-row))::before{content:attr(data-label);display:block;margin-bottom:2px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amuted2)}
+  .atbl tr:has(button[onclick*="openFicha"]){cursor:pointer}
+}
